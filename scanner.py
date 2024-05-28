@@ -14,7 +14,7 @@ def print_banner():
     print("/   \\_ |   |   |/  \\ ||_____|/  \\ /   \\_ |  _  ||  |  ||  |  ||   [_ |    \\")
     print("\\     ||   |   |\\    |       \\    \\     ||  |  ||  |  ||  |  ||     ||  .  \\")
     print(" \\____||___|___| \\___|        \\___|\\____||__|__||__|__||__|__||_____||__|\\_\\")
-    print("\nCMS Vulnerability Scanner: Detects and scans Joomla, WordPress, SilverStripe, and Drupal for vulnerabilities.")
+    print("\nCMS Scanner: Detects and scans Joomla, WordPress, SilverStripe, and Drupal for vulnerabilities.")
     print("\n\n                                    BY JMO")
     print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
 
