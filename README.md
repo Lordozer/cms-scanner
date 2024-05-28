@@ -11,7 +11,8 @@ This Python-based CMS vulnerability scanner detects common Content Management Sy
 5. Navigate to the droopescan directory: `cd droopescan`
 6. Install dependencies: `pip install -r requirements.txt`
 7. return to the project directory `cd ..`
-8. Run the scanner: `python3 scanner.py`
+8. sudo apt update && sudo apt install joomscan wpscan -y
+9. Run the scanner: `python3 scanner.py`
 
 ## Dependencies
 - `requests==2.26.0`: HTTP library for making requests
