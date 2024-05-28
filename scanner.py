@@ -148,29 +148,47 @@ def check_drupal(url):
         pass
     return False
 
-def run_joomscan(url, verbose=False, output_file=None):
-    command = ['joomscan', '-u', url]
-    result = subprocess.run(command, text=True, capture_output=not verbose)
-    if output_file:
-        with open(output_file, 'w') as file:
-            file.write(result.stdout)
-    return result.stdout
+def run_joomscan(url, verbose=False):
+    scan_output_file = 'joomscan_output.txt'
+    result = subprocess.Popen(['joomscan', '-u', url], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    with open(scan_output_file, 'w') as file:
+        for line in result.stdout:
+            file.write(line)
+            if verbose:
+                print(line, end='')
+    result.wait()
+    with open(scan_output_file, 'r') as file:
+        scan_results = file.read()
+    return scan_results
 
 def run_wpscan(url, verbose=False, output_file=None):
-    command = ['wpscan', '--url', url, '--detection-mode', 'passive']
-    result = subprocess.run(command, text=True, capture_output=not verbose)
+    result = subprocess.Popen(['wpscan', '--url', url, '--detection-mode', 'passive'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     if output_file:
         with open(output_file, 'w') as file:
-            file.write(result.stdout)
+            for line in result.stdout:
+                print(line, end='')
+                file.write(line)
+    if verbose:
+        for line in result.stdout:
+            print(line, end='')
+    result.wait()
     return result.stdout
 
 def run_droopescan(url, cms_type, verbose=False):
     original_directory = os.getcwd()
     os.chdir('droopescan')
+    scan_output_file = 'droopescan_output.txt'
     try:
-        command = ['./droopescan', 'scan', cms_type, '-u', url]
-        result = subprocess.run(command, text=True, capture_output=not verbose)
-        return result.stdout
+        result = subprocess.Popen(['./droopescan', 'scan', cms_type, '-u', url], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        with open(scan_output_file, 'w') as file:
+            for line in result.stdout:
+                file.write(line)
+                if verbose:
+                    print(line, end='')
+        result.wait()
+        with open(scan_output_file, 'r') as file:
+            scan_results = file.read()
+        return scan_results
     finally:
         os.chdir(original_directory)
 
@@ -185,13 +203,31 @@ def search_cves_for_versions(versions):
         try:
             response = requests.get(search_url)
             if response.status_code == 200:
+                # Example: Parse the HTML response to extract CVE information
+                # Here, we just print the search URL as an example
                 print(f"Search successful. Extracted CVEs for version {version}:")
+                # Add retrieved CVEs to the list
+                # cves_found.extend(retrieved_cves)
             else:
                 print(f"Failed to retrieve CVEs for version {version}")
         except requests.RequestException:
             print(f"Failed to retrieve CVEs for version {version}")
 
     return cves_found
+
+def generate_pdf(formatted_results):
+    pdf_file_path = 'scan_output.pdf'
+    doc = SimpleDocTemplate(pdf_file_path, pagesize=letter)
+    styles = getSampleStyleSheet()
+    elements = []
+
+    elements.append(Paragraph("Scan Results:", styles['Title']))
+
+    for line in formatted_results.split('\n'):
+        elements.append(Paragraph(line, styles['Normal']))
+
+    doc.build(elements)
+    print(f"PDF report generated: {pdf_file_path}")
 
 def main():
     print_banner()
@@ -205,49 +241,57 @@ def main():
     if verbose_mode:
         print("Verbose mode activated.")
 
-    cves_found = []
-    scan_output_file = 'scan_output.txt'
+    cves_found = []  # Initialize cves_found variable here
+    scan_output_file = 'scan_output.txt'  # Define a file to store scan output
 
     if cms == 'joomla':
         print("Running JoomScan...")
         scan_results = run_joomscan(url, verbose_mode, scan_output_file)
+        with open(scan_output_file, 'r') as file:
+            formatted_results = file.read()
     elif cms == 'wordpress':
         print("Running WPScan...")
         scan_results = run_wpscan(url, verbose_mode, scan_output_file)
+        with open(scan_output_file, 'r') as file:
+            formatted_results = file.read()
     elif cms in ['silverstripe', 'drupal']:
         print(f"Running DroopScan for {cms.capitalize()}...")
         scan_results = run_droopescan(url, cms, verbose_mode)
-        versions = get_versions_from_scan_results(scan_results)
+        formatted_results = scan_results
+        # Check if scan_results is a file object
+        if hasattr(scan_results, 'read'):
+            # If it's a file object, read its content
+            with open(scan_output_file, 'r') as file:
+                formatted_results = file.read()
+        # Retrieve versions from scan_results
+        versions = get_versions_from_scan_results(formatted_results)
         if versions:
+            # Search for CVEs related to detected versions
             cves_found = search_cves_for_versions(versions)
             if cves_found:
-                scan_results += "\n\nCVEs found for detected versions:\n"
-                scan_results += "\n".join(cves_found)
+                formatted_results += "\n\nCVEs found for detected versions:\n"
+                formatted_results += "\n".join(cves_found)
             else:
-                scan_results += "\n\nNo CVEs found for detected versions."
+                formatted_results += "\n\nNo CVEs found for detected versions."
 
-    print_to_pdf = input("Do you want the results printed in a PDF? (yes/no): ").strip().lower() == 'yes'
+    print_to_pdf = input("Do you want to generate a PDF report? (yes/no): ").strip().lower() == 'yes'
 
     if print_to_pdf:
-        report_name = input("Enter a name for the report (without extension): ").strip()
-        pdf_file_path = f'reports/{report_name}.pdf'
-        if not os.path.exists('reports'):
-            os.makedirs('reports')
-        doc = SimpleDocTemplate(pdf_file_path, pagesize=letter)
-        styles = getSampleStyleSheet()
-        story = [Paragraph("Scan Results:", styles['Title'])]
-        with open(scan_output_file) as file:
-            scan_output = file.read()
-        story.append(Paragraph(scan_output.replace('\n', '<br />'), styles['Normal']))
-        doc.build(story)
-
-    print("Scan Results:")
-    print(scan_results)
-    if cves_found:
-        print("\nCVEs Found:")
-        print("\n".join(cves_found))
+        generate_pdf(formatted_results)
     else:
-        print("\nNo CVEs Found")
+        # Write the scan output to a text file
+        with open('scan_output.txt', 'w') as f:
+            f.write(formatted_results)
+
+        print("Scan Results:")
+        print(formatted_results)
+
+        # Print CVEs found after scan results
+        if cves_found:
+            print("\nCVEs Found:")
+            print("\n".join(cves_found))
+        else:
+            print("\nNo CVEs Found")
 
 if __name__ == '__main__':
     main()
