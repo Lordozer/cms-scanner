@@ -21,4 +21,7 @@ This Python-based CMS scanner detects common Content Management Systems (CMS) li
 ## Contributing
 Contributions are welcome! If you find any issues or have suggestions for improvements, please open an issue or create a pull request.
 
+##disclaimer
+url format : https://example.com/
+
 JMO.
