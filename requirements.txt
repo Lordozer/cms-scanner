@@ -1,0 +1,4 @@
+requests==2.26.0
+reportlab==3.6.1
+wpscan
+joomscan
