@@ -203,11 +203,7 @@ def search_cves_for_versions(versions):
         try:
             response = requests.get(search_url)
             if response.status_code == 200:
-                # Example: Parse the HTML response to extract CVE information
-                # Here, we just print the search URL as an example
                 print(f"Search successful. Extracted CVEs for version {version}:")
-                # Add retrieved CVEs to the list
-                # cves_found.extend(retrieved_cves)
             else:
                 print(f"Failed to retrieve CVEs for version {version}")
         except requests.RequestException:
