@@ -1,0 +1,34 @@
+{
+  "joomla": {
+    "common_files": [
+      "administrator/manifests/files/joomla.xml",
+      "administrator/templates/system/css/system.css",
+      "media/system/js/mootools-core.js",
+      "libraries/cms/version/version.php",
+      "libraries/cms/version/version.php-dist"
+    ]
+  },
+  "wordpress": {
+    "common_files": [
+      "wp-login.php",
+      "wp-admin/",
+      "wp-includes/"
+    ]
+  },
+  "silverstripe": {
+    "common_files": [
+      "cms/css/silverstripe.css",
+      "framework/css/silverstripe.css",
+      "assets/_combinedfiles/",
+      "Security/login"
+    ]
+  },
+  "drupal": {
+    "common_files": [
+      "core/misc/drupal.js",
+      "sites/default/settings.php",
+      "misc/drupal.js",
+      "modules/system/system.module"
+    ]
+  }
+}
