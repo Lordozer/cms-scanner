@@ -225,7 +225,7 @@ def main():
 
     versions = get_versions_from_scan_results(formatted_results)
     if versions:
-        cpe_name_base = f"cpe:2.3:a:{cms}"  # Adjust this according to your CMS type
+        cpe_name_base = f"cpe:2.3:a:{cms}"  
         cves_found = search_cves_for_versions(versions, cpe_name_base)
         if cves_found:
             cves_output = "\nCVEs Found:\n" + "\n".join(cves_found)
