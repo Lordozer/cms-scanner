@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scan Report for {{ url }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        h1 { color: #333; }
+        .title { font-size: 24px; font-weight: bold; }
+        .subtitle { font-size: 18px; font-weight: bold; margin-top: 20px; }
+        .content { margin-top: 10px; }
+        .cves { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Scan Report for {{ url }}</h1>
+    <p><strong>CMS:</strong> {{ cms | capitalize }}</p>
+    <p><strong>Scan Date:</strong> {{ date }}</p>
+    <div class="content">
+        <h2 class="subtitle">Scan Results:</h2>
+        <pre>{{ results }}</pre>
+    </div>
+    <div class="cves">
+        <h2 class="subtitle">CVEs Found:</h2>
+        {% if cves %}
+            <ul>
+                {% for cve in cves %}
+                    <li>{{ cve }}</li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>No CVEs Found</p>
+        {% endif %}
+    </div>
+</body>
+</html>
