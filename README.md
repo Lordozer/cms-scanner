@@ -21,7 +21,7 @@ This Python-based CMS scanner detects common Content Management Systems (CMS) li
 - Droopescan
 
 
-## Usage Instructions
+## Installation guide
 1. Clone the repository: `git clone https://github.com/lordozer/cms-scanner.git`
 2. Navigate to the project directory: `cd cms-scanner`
 3. Install dependencies: `pip install -r requirements.txt`
@@ -30,7 +30,6 @@ This Python-based CMS scanner detects common Content Management Systems (CMS) li
 6. Install dependencies: `pip install -r requirements.txt`
 7. return to the project directory `cd ..`
 8. sudo apt update && sudo apt install joomscan wpscan -y
-9. Run the scanner: `python3 cms_scanner.py`
 
 ## Usage
 
