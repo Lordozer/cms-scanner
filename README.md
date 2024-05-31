@@ -42,6 +42,8 @@ python main.py -u <URL> [-v] [-o <output_format>]
 
 -o, --output: The output format for the report. Choices are pdf, html, text. Default is text.
 
+-h : help.
+
 ## Example
 python main.py -u http://example.com -v -o pdf
 
