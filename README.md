@@ -12,7 +12,7 @@ This Python-based CMS scanner detects common Content Management Systems (CMS) li
 6. Install dependencies: `pip install -r requirements.txt`
 7. return to the project directory `cd ..`
 8. sudo apt update && sudo apt install joomscan wpscan -y
-9. Run the scanner: `python3 scanner.py`
+9. Run the scanner: `python3 cms_scanner.py`
 
 ## Dependencies
 - `requests==2.26.0`: HTTP library for making requests
