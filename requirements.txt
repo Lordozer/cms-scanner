@@ -1,4 +1,4 @@
-requests==2.25.1
-reportlab==3.5.68
-jinja2==2.11.3
-
+requests
+tqdm
+reportlab
+jinja2
