@@ -3,16 +3,17 @@ import argparse
 import logging
 from logging_config import setup_logging
 from cms_detector import detect_cms
-import re
-import requests
-import subprocess
-import os
+from config_loader import load_config
+from scanner_utils import analyze_scan_results
 from datetime import datetime
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import SimpleDocTemplate, Paragraph
+from config_loader import load_cpe_dictionary
 from jinja2 import Environment, FileSystemLoader
-
+import subprocess
+import re
+from scanner_utils import extract_cves
 setup_logging()
 
 API_KEY = "0c05f603-2691-45f1-b782-1193e53a07c1"
@@ -83,31 +84,20 @@ def run_droopescan(url, cms_type, verbose=False):
     finally:
         os.chdir(original_directory)
 
-def get_versions_from_scan_results(scan_results):
-    versions = re.findall(r'(\d+\.\d+\.\d+)', scan_results)
-    return versions
-
-def search_cves_for_versions(versions, cpe_name_base):
-    print("Searching for CVEs...")
-    headers = {"apiKey": API_KEY}
-    cves_found = []
-    for version in versions:
-        cpe_name = f"{cpe_name_base}:{version}"
-        search_url = f"{NVD_API_URL}?cpeName={cpe_name}&resultsPerPage=20"
-        try:
-            response = requests.get(search_url, headers=headers)
-            if response.status_code == 200:
-                cves = response.json().get('vulnerabilities', [])
-                if cves:
-                    logging.info(f"Found CVEs for version {version}: {', '.join(cve['cve']['id'] for cve in cves)}")
-                    cves_found.extend(cve['cve']['id'] for cve in cves)
-                else:
-                    logging.info(f"No CVEs found for version {version}")
-            else:
-                logging.error(f"Failed to retrieve CVEs for version {version}")
-        except requests.RequestException as e:
-            logging.error(f"Failed to retrieve CVEs for version {version}: {e}")
-    return cves_found
+def search_cves_for_services(scan_results):
+    analyzed_results = analyze_scan_results(scan_results)
+    all_cves = set()
+    for service, details in analyzed_results.items():
+        if details['cves']:
+            all_cves.update(details['cves'])
+    
+    if all_cves:
+        print("CVEs found:")
+        for cve in sorted(all_cves):  # Sort for consistent output
+            print(cve)
+    else:
+        print("No CVEs found.")
+    return analyzed_results
 
 def generate_pdf(formatted_results, url, cms, cves):
     pdf_file_path = 'scan_output.pdf'
@@ -167,28 +157,6 @@ def print_banner():
 
 
                                     BY JMO
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     """
     print(banner)
     logging.info("Printed banner.")
@@ -223,28 +191,29 @@ def main():
         logging.error("Scan failed.")
         return
 
-    versions = get_versions_from_scan_results(formatted_results)
-    if versions:
-        cpe_name_base = f"cpe:2.3:a:{cms}"  
-        cves_found = search_cves_for_versions(versions, cpe_name_base)
-        if cves_found:
-            cves_output = "\nCVEs Found:\n" + "\n".join(cves_found)
-        else:
-            cves_output = "\nNo CVEs Found"
+    analyzed_results = search_cves_for_services(formatted_results)
+    
+    all_cves = set()
+    for service, details in analyzed_results.items():
+        if details['cves']:
+            all_cves.update(details['cves'])
+
+    if all_cves:
+        print("CVEs found:")
+        for cve in sorted(all_cves):  # Sort for consistent output
+            print(cve)
     else:
-        cves_found = []
-        cves_output = "\nNo version information found."
+        print("No CVEs found.")
 
     if output_format == 'pdf':
-        generate_pdf(formatted_results + cves_output, url, cms, cves_found)
+        generate_pdf(formatted_results, url, cms, list(all_cves))
     elif output_format == 'html':
-        generate_html(formatted_results + cves_output, url, cms, cves_found)
+        generate_html(formatted_results, url, cms, list(all_cves))
     else:
         with open('scan_output.txt', 'w') as f:
-            f.write(formatted_results + cves_output)
+            f.write(formatted_results)
         print("Scan Results:")
         print(formatted_results)
-        print(cves_output)
 
 if __name__ == '__main__':
     main()
