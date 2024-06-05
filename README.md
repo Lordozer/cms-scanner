@@ -29,7 +29,8 @@ This Python-based CMS scanner detects common Content Management Systems (CMS) li
 5. Navigate to the droopescan directory: `cd droopescan`
 6. Install dependencies: `pip install -r requirements.txt`
 7. return to the project directory `cd ..`
-8. sudo apt update && sudo apt install joomscan wpscan -y
+8. upload the cpe dictionnary official-cpe-dictionary_v2.3.xml.zip and extract it in the cms-scanner directory link: 'https://nvd.nist.gov/products/cpe'
+9. sudo apt update && sudo apt install joomscan wpscan -y
 
 ## Usage
 
