@@ -52,3 +52,4 @@ def check_cms(url, indicators, cms):
     except Exception as e:
         logging.error(f"Error checking {cms} for {url}: {e}")
         return False
+
