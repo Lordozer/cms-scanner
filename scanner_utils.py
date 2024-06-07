@@ -72,22 +72,62 @@ def extract_cves(cpe_name):
 def extract_services_and_versions(scan_results):
     exclude_services = {'version', 'document', 'plugin', 'manager'}
     services = {}
-    regex_patterns = [
-        r'(\w+)[\s/-]+v?(\d+\.\d+\.\d+)',         # Matches "service 1.2.3" or "service-v1.2.3"
-        r'(\w+)\s*:\s*v?(\d+\.\d+\.\d+)',         # Matches "service: 1.2.3" or "service: v1.2.3"
-        r'(\w+)\s+version\s+v?(\d+\.\d+\.\d+)',   # Matches "service version 1.2.3"
-        r'(\w+)\s+v?(\d+\.\d+)',                  # Matches "service 1.2" or "service v1.2"
-    ]
 
-    for pattern in regex_patterns:
-        for line in scan_results.split('\n'):
-            match = re.search(pattern, line, re.IGNORECASE)
-            if match:
-                service = match.group(1).lower()
-                if service in exclude_services:
-                    continue
-                version = match.group(2)
-                services[service] = {'version': version}
+    # Regular expression patterns for each scanner tool
+    regex_patterns = {
+        'wpscan': [
+            r'\|\s+-\s([^\s]+)\s+([\d\.]+)',           # Matches "| - plugin 1.2.3"
+            r'\[\+\] ([^:]+): ([\d\.]+)',              # Matches "[+] plugin: 1.2.3"
+            r'Version: ([\d\.]+)'                      # Matches "Version: 1.2.3"
+        ],
+        'joomscan': [
+            r'Joomla! ([\d\.]+)',                      # Matches "Joomla! 1.2.3"
+            r'ver ([\d\.]+)',                          # Matches "ver 1.2.3"
+        ],
+        'droopescan': [
+            r'Possible version\(s\):\s+([\d\.\-rc]+)', # Matches "Possible version(s): 1.2.3"
+            r'(\w+)\s+\(version:\s([\d\.]+)'           # Matches "service (version: 1.2.3)"
+        ]
+    }
+
+    def add_service(service, version):
+        service = service.lower()
+        if service not in exclude_services:
+            services[service] = {'version': version}
+
+    current_tool = None
+    for line in scan_results.split('\n'):
+        # Detect the scanning tool used
+        if "WPScan" in line:
+            current_tool = 'wpscan'
+        elif "OWASP JoomScan" in line:
+            current_tool = 'joomscan'
+        elif "Droopescan" in line:
+            current_tool = 'droopescan'
+
+        # Apply the appropriate regex patterns based on the tool
+        if current_tool:
+            for pattern in regex_patterns[current_tool]:
+                match = re.search(pattern, line, re.IGNORECASE)
+                if match:
+                    if current_tool == 'wpscan':
+                        if len(match.groups()) == 2:
+                            service, version = match.groups()
+                            add_service(service, version)
+                        elif len(match.groups()) == 1:
+                            version = match.group(1)
+                            service = 'wordpress'
+                            add_service(service, version)
+                    elif current_tool == 'joomscan':
+                        if len(match.groups()) == 1:
+                            version = match.group(1)
+                            service = 'joomla'
+                            add_service(service, version)
+                    elif current_tool == 'droopescan':
+                        if len(match.groups()) == 2:
+                            service, version = match.groups()
+                            add_service(service, version)
+
     return services
 
 def analyze_scan_results(scan_results):
