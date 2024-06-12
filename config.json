@@ -30,5 +30,111 @@
       "misc/drupal.js",
       "modules/system/system.module"
     ]
+  },
+  "typo3": {
+    "common_files": [
+      "typo3conf/ext/",
+      "typo3temp/",
+      "typo3/"
+    ]
+  },
+  "aem": {
+    "common_files": [
+      "etc/designs/",
+      "content/dam/",
+      "libs/granite/",
+      "etc/clientlibs/"
+    ]
+  },
+  "vbscan": {
+    "common_files": [
+      "forum/admincp/",
+      "forum/modcp/",
+      "forum/includes/"
+    ]
+  },
+  "moodle": {
+    "common_files": [
+      "admin/tool/health/",
+      "auth/shibboleth/",
+      "lib/editor/tinymce/"
+    ]
+  },
+  "oscommerce": {
+    "common_files": [
+      "admin/includes/",
+      "catalog/includes/",
+      "ext/modules/payment/"
+    ]
+  },
+  "coldfusion": {
+    "common_files": [
+      "CFIDE/administrator/",
+      "cfdocs/",
+      "cfformgateway/"
+    ]
+  },
+  "jboss": {
+    "common_files": [
+      "jboss-as/",
+      "management/",
+      "console/"
+    ]
+  },
+  "oracle_e_business": {
+    "common_files": [
+      "OA_HTML/",
+      "OA_JAVA/",
+      "OA_MEDIA/"
+    ]
+  },
+  "phpbb": {
+    "common_files": [
+      "adm/index.php",
+      "styles/prosilver/",
+      "images/avatars/"
+    ]
+  },
+  "php_nuke": {
+    "common_files": [
+      "admin.php",
+      "modules.php",
+      "themes/"
+    ]
+  },
+  "dotnetnuke": {
+    "common_files": [
+      "DesktopModules/Admin/",
+      "Portals/_default/",
+      "bin/DotNetNuke.dll"
+    ]
+  },
+  "umbraco": {
+    "common_files": [
+      "umbraco/",
+      "config/umbracoSettings.config",
+      "App_Plugins/"
+    ]
+  },
+  "prestashop": {
+    "common_files": [
+      "admin-dev/",
+      "modules/",
+      "themes/"
+    ]
+  },
+  "opencart": {
+    "common_files": [
+      "admin/",
+      "catalog/",
+      "system/"
+    ]
+  },
+  "magento": {
+    "common_files": [
+      "app/Mage.php",
+      "js/mage/",
+      "downloader/"
+    ]
   }
 }
