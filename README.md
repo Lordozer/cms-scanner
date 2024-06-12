@@ -1,7 +1,7 @@
 # CMS-Scanner
 
 ## Overview
-This Python-based CMS scanner detects common Content Management Systems (CMS) like Joomla, WordPress, SilverStripe, and Drupal. It utilizes external tools such as JoomScan, WPScan, and DroopScan to perform passive detection of vulnerabilities and versions. The scanner can generate scan reports and search for Common Vulnerabilities and Exposures (CVEs) related to detected CMS versions.
+This Python-based CMS scanner detects common Content Management Systems (CMS) like 'joomla', 'wordpress', 'silverstripe', 'drupal', 'typo3', 'aem', 'vbscan', 'moodle', 'oscommerce', 'coldfusion', 'jboss', 'oracle_e_business', 'phpbb', 'php_nuke', 'dotnetnuke', 'umbraco' and 'prestashop'. It utilizes external tools such as JoomScan, WPScan, and DroopScan..etc to perform passive detection of vulnerabilities and versions. The scanner can generate scan reports and search for Common Vulnerabilities and Exposures (CVEs) related to detected CMS versions.
 
 ## Features
 
