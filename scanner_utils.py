@@ -29,6 +29,7 @@ def check_common_files(url, cms, config):
             try:
                 response = future.result()
                 if response and response.status_code == 200:
+                    logging.info(f"Found common file for {cms}: {future_to_file[future]}")
                     return True
             except Exception as e:
                 logging.error(f"Error checking {file} for {cms}: {e}")
@@ -73,7 +74,6 @@ def extract_services_and_versions(scan_results):
     exclude_services = {'version', 'document', 'plugin', 'manager'}
     services = {}
 
-    # Regular expression patterns for each scanner tool
     regex_patterns = {
         'wpscan': [
             r'\|\s+-\s([^\s]+)\s+([\d\.]+)',           # Matches "| - plugin 1.2.3"
@@ -87,6 +87,24 @@ def extract_services_and_versions(scan_results):
         'droopescan': [
             r'Possible version\(s\):\s+([\d\.\-rc]+)', # Matches "Possible version(s): 1.2.3"
             r'(\w+)\s+\(version:\s([\d\.]+)'           # Matches "service (version: 1.2.3)"
+        ],
+        'typo3scan': [
+            r'Identified Version:\s+([\d\.]+)',        # Matches "Identified Version: 10.4.37"
+            r'Extension Title:\s+([^\n]+)',            # Matches "Extension Title: VHS: Fluid ViewHelpers"
+            r'Extension Url:\s+([^\n]+)'               # Matches "Extension Url: https://www.example.com/typo3conf/ext/vhs"
+        ],
+        'aemscan': [
+            r'AEM Version: ([\d\.]+)',                 # Matches "AEM Version: 6.5.0"
+            r'Component: ([^\n]+)',                    # Matches "Component: some-component"
+            r'Vulnerability: ([^\n]+)'                 # Matches "Vulnerability: some-vulnerability"
+        ],
+        'vbscan': [
+            r'vBulletin ([\d\.]+)',                    # Matches "vBulletin 3.7.6"
+            r'\[+\] ([^\n]+)',                         # Matches "[++] some output"
+        ],
+        'nmap': [
+            r'(\d+)/\w+\s+open\s+([\w\-]+)\s+([\d\.]+)',  # Matches "80/tcp open  http 1.1"
+            r'(\d+)/\w+\s+open\s+([\w\-]+)\s+([\w\-]+)'  # Matches "80/tcp open  http  Apache httpd 2.4.7"
         ]
     }
 
@@ -97,15 +115,21 @@ def extract_services_and_versions(scan_results):
 
     current_tool = None
     for line in scan_results.split('\n'):
-        # Detect the scanning tool used
         if "WPScan" in line:
             current_tool = 'wpscan'
         elif "OWASP JoomScan" in line:
             current_tool = 'joomscan'
         elif "Droopescan" in line:
             current_tool = 'droopescan'
+        elif "TYPO3" in line:
+            current_tool = 'typo3scan'
+        elif "AEM Version" in line:
+            current_tool = 'aemscan'
+        elif "OWASP VBScan" in line:
+            current_tool = 'vbscan'
+        elif "Nmap" in line:
+            current_tool = 'nmap'
 
-        # Apply the appropriate regex patterns based on the tool
         if current_tool:
             for pattern in regex_patterns[current_tool]:
                 match = re.search(pattern, line, re.IGNORECASE)
@@ -126,6 +150,25 @@ def extract_services_and_versions(scan_results):
                     elif current_tool == 'droopescan':
                         if len(match.groups()) == 2:
                             service, version = match.groups()
+                            add_service(service, version)
+                    elif current_tool == 'typo3scan':
+                        if len(match.groups()) == 1:
+                            version = match.group(1)
+                            service = 'typo3'
+                            add_service(service, version)
+                    elif current_tool == 'aemscan':
+                        if len(match.groups()) == 1:
+                            version = match.group(1)
+                            service = 'aem'
+                            add_service(service, version)
+                    elif current_tool == 'vbscan':
+                        if len(match.groups()) == 1:
+                            version = match.group(1)
+                            service = 'vbulletin'
+                            add_service(service, version)
+                    elif current_tool == 'nmap':
+                        if len(match.groups()) == 3:
+                            port, service, version = match.groups()
                             add_service(service, version)
 
     return services
@@ -151,3 +194,4 @@ def analyze_scan_results(scan_results):
                 'cves': list(all_cves)  # Convert set back to list
             }
     return detected_services
+
