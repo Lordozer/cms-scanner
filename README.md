@@ -76,5 +76,5 @@ Contributions are welcome! If you find any issues or have suggestions for improv
 
 ##disclaimer
 url format : https://example.com/
-
+python 3.8<
 JMO.
