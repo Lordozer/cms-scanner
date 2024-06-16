@@ -7,7 +7,7 @@ This Python-based CMS scanner detects common Content Management Systems (CMS) li
 
 ## Features
 
-- Detects CMS types: Joomla, WordPress, SilverStripe, and Drupal
+- Detects CMS types: Joomla, WordPress, SilverStripe, and Drupal.
 - Scans CMS for common vulnerabilities
 - Searches for known CVEs using the NVD API
 - Generates detailed reports in PDF, HTML, or plain text formats
