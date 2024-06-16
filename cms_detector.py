@@ -2,7 +2,7 @@ import logging
 from scanner_utils import make_request, check_common_files
 from config_loader import load_config
 import concurrent.futures
-
+#....
 config = load_config()
 
 def detect_cms(url):
