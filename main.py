@@ -17,6 +17,7 @@ import re
 from tqdm import tqdm
 import xml.sax.saxutils as saxutils
 
+
 setup_logging()
 
 API_KEY = "0c05f603-2691-45f1-b782-1193e53a07c1"
