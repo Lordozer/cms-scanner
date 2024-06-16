@@ -3,6 +3,7 @@ import logging
 import os
 from xml.etree import ElementTree as ET
 
+
 def load_config(file_path='config.json'):
     try:
         with open(file_path, 'r') as config_file:
