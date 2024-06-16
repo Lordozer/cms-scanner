@@ -7,6 +7,7 @@ import os
 import time
 from tqdm import tqdm
 
+
 def make_request(url, method='GET', headers=None, timeout=10):
     try:
         if method == 'GET':
