@@ -20,7 +20,6 @@ if [ "$(lsb_release -is)" == "Kali" ]; then
   sudo apt install -y joomscan
 else
   git clone https://github.com/OWASP/joomscan.git
-  cd ..
 fi
 
 # Create and activate a virtual environment
