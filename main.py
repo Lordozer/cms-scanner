@@ -72,7 +72,7 @@ def run_joomscan(url, verbose=False, output_file=None):
         else:
             # Use the perl command for other distributions
             original_directory = os.getcwd()
-            os.chdir('cms-scanner/joomscan')
+            os.chdir('joomscan')
             result = subprocess.Popen(['perl', 'joomscan.pl', '--url', url], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
             os.chdir(original_directory)
 
