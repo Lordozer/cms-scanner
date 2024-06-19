@@ -15,8 +15,7 @@ from jinja2 import Environment, FileSystemLoader
 import subprocess
 import re
 from tqdm import tqdm
-import xml.sax.saxutils as saxutils
-
+import platform
 
 setup_logging()
 
@@ -61,13 +60,22 @@ def run_nmap_scan(url, verbose=False, output_file=None):
         return scan_results
     except Exception as e:
         logging.error(f"Error running Nmap: {e}")
-        return None
+    return None
 
 def run_joomscan(url, verbose=False, output_file=None):
     print("Launching Joomla scanner...")
     scan_output_file = output_file or 'joomscan_output.txt'
     try:
-        result = subprocess.Popen(['joomscan', '-u', url], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        if platform.system().lower() == 'linux' and 'kali' in platform.release().lower():
+            # Use the pre-installed command for Kali Linux
+            result = subprocess.Popen(['joomscan', '--url', url], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        else:
+            # Use the perl command for other distributions
+            original_directory = os.getcwd()
+            os.chdir('cms-scanner/joomscan')
+            result = subprocess.Popen(['perl', 'joomscan.pl', '--url', url], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+            os.chdir(original_directory)
+
         with open(scan_output_file, 'w') as file:
             for line in result.stdout:
                 file.write(line)
@@ -79,7 +87,7 @@ def run_joomscan(url, verbose=False, output_file=None):
         return scan_results
     except Exception as e:
         logging.error(f"Error running JoomScan: {e}")
-        return None
+    return None
 
 def run_wpscan(url, verbose=False, output_file=None):
     print("Launching WordPress scanner...")
@@ -97,7 +105,7 @@ def run_wpscan(url, verbose=False, output_file=None):
         return scan_results
     except Exception as e:
         logging.error(f"Error running WPScan: {e}")
-        return None
+    return None
 
 def run_droopescan(url, cms_type, verbose=False):
     print("Launching Droopescan...")
@@ -242,13 +250,13 @@ def generate_pdf(formatted_results, url, cms, cves):
 
     elements.append(Paragraph(f"Scan Results for {url} ({cms.capitalize()}):", title_style))
     elements.append(Paragraph(f"Scan Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", styles['Normal']))
-    
+
     elements.append(Spacer(1, 12))
     elements.append(Paragraph("Scan Results:", title_style))
 
     for line in formatted_results.split('\n'):
         elements.append(Paragraph(saxutils.escape(line), custom_style))
-    
+
     if cves:
         elements.append(Spacer(1, 12))
         elements.append(Paragraph("CVEs Found:", title_style))
@@ -320,13 +328,13 @@ def print_banner():
   CMS Scanner: Detects and scans Joomla, WordPress, SilverStripe, Drupal, Typo3, AEM, VBulletin, Moodle, Oscommerce, Coldfusion, Jboss, Oracle E-Business, Phpbb, Php-nuke, Dotnetnuke, Umbraco, Prestashop, Opencart, Magento.
 
                                     BY JMO
-    """
+
+"""
     print(banner)
     logging.info("Printed banner.")
 
 def main():
     args = parse_arguments()
-    
     print_banner()
     url = args.url
     verbose = args.verbose
@@ -334,7 +342,7 @@ def main():
 
     # Prompt for CMS choice
     cms = prompt_for_cms_choice()
-    
+
     if not cms:
         cms = detect_cms(url)
         if cms:
@@ -344,7 +352,7 @@ def main():
             print("Unknown CMS or unable to detect CMS. Running Nmap scan as fallback.")
             logging.info("Unknown CMS or unable to detect CMS. Running Nmap scan as fallback.")
             cms = 'nmap'
-    
+
     if verbose:
         logging.info("Verbose mode activated.")
         print("Verbose mode activated.")
@@ -361,7 +369,7 @@ def main():
         return
 
     analyzed_results = search_cves_for_services(formatted_results)
-    
+
     all_cves = set()
     for service, details in analyzed_results.items():
         if details['cves']:
@@ -386,3 +394,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+                                                                                                                    
