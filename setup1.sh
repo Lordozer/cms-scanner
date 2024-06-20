@@ -39,8 +39,8 @@ fi
 echo "Installing pip for Python 3.7..."
 sudo apt remove python3-typing-extensions
 sudo apt install python3.7-venv
-python3.7 -m venv myenv
-source myenv/bin/activate
+python3.7 -m venv menv
+source menv/bin/activate
 curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
 python get-pip.py
 
