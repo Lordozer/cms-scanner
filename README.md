@@ -65,9 +65,10 @@ python main.py -u https://example.com -v -o pdf
 
 Prompt for Manual CMS Selection:
 
-If you prefer to specify the CMS manually, the tool will prompt you:
+**If you prefer to specify the CMS manually, the tool will prompt you:**
 
 Do you want to specify the CMS manually? (yes/no): yes
+
 Please specify the CMS (joomla, wordpress, silverstripe, drupal, typo3, aem, vbscan, moodle, oscommerce, coldfusion, jboss, oracle_e_business, phpbb, php_nuke, dotnetnuke, umbraco, prestashop, opencart, magento): wordpress
 
 ## Configuration
