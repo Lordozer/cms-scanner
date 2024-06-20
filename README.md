@@ -75,7 +75,6 @@ Sample Configuration (config.json)
       "libraries/cms/version/version.php-dist"
     ]
   },
-  ...
 }
 ```
 ## Logging
