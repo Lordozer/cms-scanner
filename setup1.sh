@@ -15,9 +15,9 @@ echo "Adding deadsnakes PPA..."
 sudo add-apt-repository ppa:deadsnakes/ppa
 sudo apt update
 
-# Install Python 3.7 and ensure it includes distutils and venv
+# Install Python 3.7 and ensure it includes distutils
 echo "Installing Python 3.7 and system dependencies..."
-sudo apt install -y python3.7 python3.7-venv python3.7-dev python3.7-distutils
+sudo apt install -y python3.7 python3.7-distutils
 
 # Install other system dependencies
 echo "Installing other system dependencies..."
@@ -35,10 +35,9 @@ else
   git clone https://github.com/OWASP/joomscan.git
 fi
 
-
 # Install pip for Python 3.7
 echo "Installing pip for Python 3.7..."
-wget https://bootstrap.pypa.io/get-pip.py
+curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
 sudo python3.7 get-pip.py
 
 # Install Python dependencies globally using Python 3.7
