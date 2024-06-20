@@ -64,7 +64,7 @@ Please specify the CMS (joomla, wordpress, silverstripe, drupal, typo3, aem, vbs
 The tool uses config.json for CMS-specific settings and logging_config.py for logging configuration. Modify these files to customize the behavior and logging of the tool according to your needs.
 
 Sample Configuration (config.json)
-
+```json
 {
   "joomla": {
     "common_files": [
