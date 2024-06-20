@@ -43,8 +43,15 @@ This installation process has been tested on both Kali Linux and Ubuntu.
 ## Usage
 
 To run the scanner, use the following command:
-
-python main.py -u <URL> [-v] [-o <output format>]
+**for ubuntu :**
+  ```bash
+  source /menv/bin/activate
+  python main.py -u <URL> [-v] [-o <output format>]
+  ```
+**for kali :**
+ ```bash
+  python main.py -u <URL> [-v] [-o <output format>]
+  ```
 -u, --url: The URL of the site to scan (required).
 -v, --verbose: Enable verbose mode (optional).
 -o, --output: Specify the output format (choices: 'pdf', 'html', 'text'; default: 'text').
