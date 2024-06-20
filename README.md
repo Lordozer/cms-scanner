@@ -77,7 +77,7 @@ Sample Configuration (config.json)
   },
   ...
 }
-
+```
 ## Logging
 
 The tool logs its activity to scanner.log. The log file is managed by a rotating file handler to ensure that log size is kept under control. The logging configuration can be adjusted in logging_config.py.
