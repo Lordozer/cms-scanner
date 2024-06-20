@@ -17,7 +17,7 @@ sudo apt update
 
 # Install Python 3.7 and ensure it includes distutils
 echo "Installing Python 3.7 and system dependencies..."
-sudo apt install -y python3.7 python3.7-distutils
+sudo apt install -y python3.7 python3.7-distutils curl
 
 # Install other system dependencies
 echo "Installing other system dependencies..."
@@ -37,8 +37,12 @@ fi
 
 # Install pip for Python 3.7
 echo "Installing pip for Python 3.7..."
+sudo apt remove python3-typing-extensions
+sudo apt install python3.7-venv
+python3.7 -m venv myenv
+source myenv/bin/activate
 curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
-sudo python3.7 get-pip.py
+python get-pip.py
 
 # Install Python dependencies globally using Python 3.7
 echo "Installing Python dependencies globally using Python 3.7..."
