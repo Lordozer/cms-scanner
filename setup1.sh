@@ -46,7 +46,7 @@ python get-pip.py
 
 # Install Python dependencies globally using Python 3.7
 echo "Installing Python dependencies globally using Python 3.7..."
-sudo python3.7 -m pip install -r requirements.txt
+pip install -r requirements.txt
 
 # Clone and set up external tools
 echo "Setting up external tools..."
@@ -55,21 +55,21 @@ echo "Setting up external tools..."
 echo "Cloning Droopescan..."
 git clone https://github.com/droope/droopescan.git
 cd droopescan
-sudo python3.7 -m pip install -r requirements.txt
+pip install -r requirements.txt
 cd ..
 
 # Typo3Scan
 echo "Cloning Typo3Scan..."
 git clone https://github.com/whoot/Typo3Scan.git
 cd Typo3Scan
-sudo python3.7 -m pip install -r requirements.txt
+pip install -r requirements.txt
 cd ..
 
 # AEMScan
 echo "Cloning AEMScan..."
 git clone https://github.com/Raz0r/aemscan.git
 cd aemscan
-sudo python3.7 setup.py install
+sudo python setup.py install
 cd ..
 
 # VBScan
@@ -83,7 +83,7 @@ cd ..
 echo "Cloning Badmoodle..."
 git clone https://github.com/cyberaz0r/badmoodle
 cd badmoodle
-sudo python3.7 -m pip install -r requirements.txt
+pip install -r requirements.txt
 chmod +x badmoodle.py
 cd ..
 
