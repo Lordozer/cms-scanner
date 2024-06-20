@@ -19,8 +19,6 @@ import platform
 
 setup_logging()
 
-API_KEY = "0c05f603-2691-45f1-b782-1193e53a07c1"
-NVD_API_URL = "https://services.nvd.nist.gov/rest/json/cves/2.0"
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='CMS Vulnerability Scanner')
