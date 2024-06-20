@@ -32,11 +32,11 @@ To install the CMS Vulnerability Scanner, follow these steps:
    cd cms-vulnerability-scanner
 2. Make the setup script executable:
    ```bash
-   chmod +x setup.sh
+   chmod +x setup_[os].sh
 
 3. Run the setup script:
    ```bash
-   ./setup.sh
+   ./setup_[os}.sh
 
 This installation process has been tested on both Kali Linux and Ubuntu.
 
