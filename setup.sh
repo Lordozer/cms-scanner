@@ -6,9 +6,9 @@ echo "Starting CMS Scanner setup..."
 echo "Updating package lists..."
 sudo apt update
 
-# Install system dependencies
-echo "Installing system dependencies..."
-sudo apt install -y python3 python3-pip python3-venv nmap git unzip curl ruby-full build-essential
+# Install Python 3.7 and system dependencies
+echo "Installing Python 3.7 and system dependencies..."
+sudo apt install -y python3.7 python3.7-venv python3.7-dev nmap git unzip curl ruby-full build-essential
 
 # Install WPScan
 echo "Installing WPScan..."
