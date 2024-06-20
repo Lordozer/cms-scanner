@@ -84,10 +84,7 @@ The tool logs its activity to scanner.log. The log file is managed by a rotating
 ## Contributing
 Contributions are welcome! Please fork the repository and create a pull request with your changes. Ensure that your code follows the existing style and includes appropriate tests.
 
-License
-This project is licensed under the MIT License. See the LICENSE file for details.
-
-Contact
+## Contact
 For any questions or support, please open an issue on the repository.
 
 
