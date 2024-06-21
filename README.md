@@ -46,7 +46,7 @@ To run the scanner, use the following command:
 
 **for ubuntu :**
   ```bash
-  source /menv/bin/activate
+  source menv/bin/activate
   python main.py -u <URL> [-v] [-o <output format>]
   ```
 **for kali :**
