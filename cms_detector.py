@@ -2,8 +2,30 @@ import logging
 from scanner_utils import make_request, check_common_files
 from config_loader import load_config
 import concurrent.futures
-#....
+
 config = load_config()
+
+CMS_PRIORITIES = {
+    'wordpress': 1,
+    'joomla': 2,
+    'drupal': 3,
+    'magento': 4,
+    'silverstripe': 5,
+    'typo3': 6,
+    'aem': 7,
+    'vbscan': 8,
+    'moodle': 9,
+    'oscommerce': 10,
+    'coldfusion': 11,
+    'jboss': 12,
+    'oracle_e_business': 13,
+    'phpbb': 14,
+    'php_nuke': 15,
+    'dotnetnuke': 16,
+    'umbraco': 17,
+    'prestashop': 18,
+    'opencart': 19
+}
 
 def detect_cms(url):
     try:
@@ -29,15 +51,26 @@ def detect_cms(url):
             'magento': check_magento
         }
 
+        detected_cms = []
         with concurrent.futures.ThreadPoolExecutor() as executor:
             future_to_cms = {executor.submit(check_function, url): cms for cms, check_function in cms_checks.items()}
             for future in concurrent.futures.as_completed(future_to_cms):
                 cms = future_to_cms[future]
-                if future.result():
-                    logging.info(f"Detected CMS: {cms}")
-                    return cms
-        logging.info("No CMS detected")
-        return None
+                try:
+                    if future.result():
+                        logging.info(f"Detected CMS: {cms}")
+                        detected_cms.append(cms)
+                except Exception as e:
+                    logging.error(f"Error detecting {cms}: {e}")
+
+        if detected_cms:
+            # Sort detected CMS by priority
+            detected_cms.sort(key=lambda cms: CMS_PRIORITIES.get(cms, float('inf')))
+            logging.info(f"Detected CMSs in order of priority: {detected_cms}")
+            return detected_cms[0]  # Return the CMS with the highest priority
+        else:
+            logging.info("No CMS detected")
+            return None
     except Exception as e:
         logging.error(f"Error detecting CMS: {e}")
         return None
