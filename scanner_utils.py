@@ -8,12 +8,12 @@ import time
 from tqdm import tqdm
 
 
-def make_request(url, method='GET', headers=None, timeout=10):
+def make_request(url, method='GET', headers=None, timeout=10, allow_redirects=True):
     try:
         if method == 'GET':
-            response = requests.get(url, headers=headers, timeout=timeout)
+            response = requests.get(url, headers=headers, timeout=timeout, allow_redirects=allow_redirects)
         elif method == 'HEAD':
-            response = requests.head(url, headers=headers, timeout=timeout)
+            response = requests.head(url, headers=headers, timeout=timeout, allow_redirects=allow_redirects)
         response.raise_for_status()
         return response
     except requests.RequestException as e:
