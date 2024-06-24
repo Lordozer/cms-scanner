@@ -1,7 +1,9 @@
 import logging
 from scanner_utils import make_request, check_common_files
 from config_loader import load_config
+from urllib.parse import urljoin
 import concurrent.futures
+
 
 config = load_config()
 
