@@ -1,198 +1,395 @@
-import requests
-import concurrent.futures
+import os
+import argparse
 import logging
+from logging_config import setup_logging
+from cms_detector import detect_cms
+from config_loader import load_config
+from scanner_utils import analyze_scan_results, extract_cves, search_cpe
+from datetime import datetime
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib import colors
+from config_loader import load_cpe_dictionary
+from jinja2 import Environment, FileSystemLoader
 import subprocess
 import re
-import os
-import time
 from tqdm import tqdm
+import platform
 
 
-def make_request(url, method='GET', headers=None, timeout=10, allow_redirects=True):
+setup_logging()
+
+
+def parse_arguments():
+    parser = argparse.ArgumentParser(description='CMS Vulnerability Scanner')
+    parser.add_argument('-u', '--url', required=True, help='The URL of the site to scan')
+    parser.add_argument('-v', '--verbose', action='store_true', help='Enable verbose mode')
+    parser.add_argument('-o', '--output', choices=['pdf', 'html', 'text'], default='text', help='Output format')
+    return parser.parse_args()
+
+def prompt_for_cms_choice():
+    choice = input("Do you want to specify the CMS manually? (yes/no): ").strip().lower()
+    if choice == 'yes':
+        cms = input("Please specify the CMS (joomla, wordpress, silverstripe, drupal, typo3, aem, vbscan, moodle, oscommerce, coldfusion, jboss, oracle_e_business, phpbb, php_nuke, dotnetnuke, umbraco, prestashop, opencart, magento): ").strip().lower()
+        if cms not in ['joomla', 'wordpress', 'silverstripe', 'drupal', 'typo3', 'aem', 'vbscan', 'moodle', 'oscommerce', 'coldfusion', 'jboss', 'oracle_e_business', 'phpbb', 'php_nuke', 'dotnetnuke', 'umbraco', 'prestashop', 'opencart', 'magento']:
+            print("Invalid CMS specified. Exiting.")
+            exit(1)
+        return cms
+    elif choice == 'no':
+        return None
+    else:
+        print("Invalid choice. Please enter 'yes' or 'no'.")
+        return prompt_for_cms_choice()
+    
+def run_nmap_scan(url, verbose=False, output_file=None):
+    print("Launching Nmap scan...")
+    scan_output_file = output_file or 'nmap_output.txt'
     try:
-        if method == 'GET':
-            response = requests.get(url, headers=headers, timeout=timeout, allow_redirects=allow_redirects)
-        elif method == 'HEAD':
-            response = requests.head(url, headers=headers, timeout=timeout, allow_redirects=allow_redirects)
-        response.raise_for_status()
-        return response
-    except requests.RequestException as e:
-        logging.error(f"Request to {url} failed: {e}")
+        domain = url.replace('https://', '').replace('http://', '').strip('/')
+        result = subprocess.Popen(['nmap', '-p-', '-A', domain], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        with open(scan_output_file, 'w') as file:
+            for line in result.stdout:
+                file.write(line)
+                if verbose:
+                    print(line, end='', flush=True)
+        result.wait()
+        with open(scan_output_file, 'r') as file:
+            scan_results = file.read()
+        return scan_results
+    except Exception as e:
+        logging.error(f"Error running Nmap: {e}")
+    return None
+
+def run_joomscan(url, verbose=False, output_file=None):
+    print("Launching Joomla scanner...")
+    scan_output_file = output_file or 'joomscan_output.txt'
+    try:
+        if platform.system().lower() == 'linux' and 'kali' in platform.release().lower():
+            # Use the pre-installed command for Kali Linux
+            result = subprocess.Popen(['joomscan', '--url', url], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        else:
+            # Use the perl command for other distributions
+            original_directory = os.getcwd()
+            os.chdir('joomscan')
+            result = subprocess.Popen(['perl', 'joomscan.pl', '--url', url], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+            os.chdir(original_directory)
+
+        with open(scan_output_file, 'w') as file:
+            for line in result.stdout:
+                file.write(line)
+                if verbose:
+                    print(line, end='', flush=True)
+        result.wait()
+        with open(scan_output_file, 'r') as file:
+            scan_results = file.read()
+        return scan_results
+    except Exception as e:
+        logging.error(f"Error running JoomScan: {e}")
+    return None
+
+def run_wpscan(url, verbose=False, output_file=None):
+    print("Launching WordPress scanner...")
+    scan_output_file = output_file or 'wpscan_output.txt'
+    try:
+        result = subprocess.Popen(['wpscan', '--url', url, '--detection-mode', 'passive'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        with open(scan_output_file, 'w') as file:
+            for line in result.stdout:
+                file.write(line)
+                if verbose:
+                    print(line, end='', flush=True)
+        result.wait()
+        with open(scan_output_file, 'r') as file:
+            scan_results = file.read()
+        return scan_results
+    except Exception as e:
+        logging.error(f"Error running WPScan: {e}")
+    return None
+
+def run_droopescan(url, cms_type, verbose=False):
+    print("Launching Droopescan...")
+    original_directory = os.getcwd()
+    os.chdir('droopescan')
+    scan_output_file = 'droopescan_output.txt'
+    try:
+        result = subprocess.Popen(['./droopescan', 'scan', cms_type, '-u', url], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        with open(scan_output_file, 'w') as file:
+            for line in result.stdout:
+                file.write(line)
+                if verbose:
+                    print(line, end='', flush=True)
+        result.wait()
+        with open(scan_output_file, 'r') as file:
+            scan_results = file.read()
+        return scan_results
+    except Exception as e:
+        logging.error(f"Error running DroopeScan: {e}")
+        return None
+    finally:
+        os.chdir(original_directory)
+
+def run_typo3scan(url, verbose=False, output_file=None):
+    print("Launching Typo3 scanner...")
+    original_directory = os.getcwd()
+    os.chdir('Typo3Scan')
+    scan_output_file = output_file or 'typo3scan_output.txt'
+    try:
+        result = subprocess.Popen(['python3', 'typo3scan.py', '-d', url, '--vuln'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        with open(scan_output_file, 'w') as file:
+            for line in result.stdout:
+                file.write(line)
+                if verbose:
+                    print(line, end='', flush=True)
+        result.wait()
+        with open(scan_output_file, 'r') as file:
+            scan_results = file.read()
+        return scan_results
+    except Exception as e:
+        logging.error(f"Error running Typo3Scan: {e}")
+        return None
+    finally:
+        os.chdir(original_directory)
+
+def run_aemscan(url, verbose=False, output_file=None):
+    print("Launching AEM scanner...")
+    original_directory = os.getcwd()
+    os.chdir('aemscan')
+    scan_output_file = output_file or 'aemscan_output.txt'
+    try:
+        result = subprocess.Popen(['aemscan', url], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        with open(scan_output_file, 'w') as file:
+            for line in result.stdout:
+                file.write(line)
+                if verbose:
+                    print(line, end='', flush=True)
+        result.wait()
+        with open(scan_output_file, 'r') as file:
+            scan_results = file.read()
+        return scan_results
+    except Exception as e:
+        logging.error(f"Error running AEMScan: {e}")
+        return None
+    finally:
+        os.chdir(original_directory)
+
+def run_vbscan(url, verbose=False, output_file=None):
+    print("Launching VB scanner...")
+    original_directory = os.getcwd()
+    os.chdir('vbscan')
+    scan_output_file = output_file or 'vbscan_output.txt'
+    try:
+        result = subprocess.Popen(['./vbscan.pl', url], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        with open(scan_output_file, 'w') as file:
+            for line in result.stdout:
+                file.write(line)
+                if verbose:
+                    print(line, end='', flush=True)
+        result.wait()
+        with open(scan_output_file, 'r') as file:
+            scan_results = file.read()
+        return scan_results
+    except Exception as e:
+        logging.error(f"Error running VBScan: {e}")
+        return None
+    finally:
+        os.chdir(original_directory)
+
+def run_badmoodle(url, verbose=False, output_file=None):
+    print("Launching badmoodle scanner...")
+    original_directory = os.getcwd()
+    os.chdir('badmoodle')
+    scan_output_file = output_file or 'badmoodle_output.txt'
+    try:
+        result = subprocess.Popen(['./badmoodle.py', '-u', url, '-l', '2'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        with open(scan_output_file, 'w') as file:
+            for line in result.stdout:
+                file.write(line)
+                if verbose:
+                    print(line, end='', flush=True)
+        result.wait()
+        with open(scan_output_file, 'r') as file:
+            scan_results = file.read()
+        return scan_results
+    except Exception as e:
+        logging.error(f"Error running badmoodle: {e}")
+        return None
+    finally:
+        os.chdir(original_directory)
+
+def search_cves_for_services(scan_results):
+    analyzed_results = analyze_scan_results(scan_results)
+    all_cves = set()
+    for service, details in analyzed_results.items():
+        if details['cves']:
+            all_cves.update(details['cves'])
+    return analyzed_results
+
+def generate_pdf(formatted_results, url, cms, cves):
+    pdf_file_path = 'scan_output.pdf'
+    doc = SimpleDocTemplate(pdf_file_path, pagesize=letter)
+    styles = getSampleStyleSheet()
+    custom_style = ParagraphStyle(
+        'Custom',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=10,
+        leading=12,
+        spaceAfter=10,
+    )
+    title_style = ParagraphStyle(
+        'Title',
+        parent=styles['Title'],
+        fontName='Helvetica-Bold',
+        fontSize=18,
+        leading=22,
+        spaceAfter=12,
+    )
+
+    elements = []
+
+    elements.append(Paragraph(f"Scan Results for {url} ({cms.capitalize()}):", title_style))
+    elements.append(Paragraph(f"Scan Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", styles['Normal']))
+
+    elements.append(Spacer(1, 12))
+    elements.append(Paragraph("Scan Results:", title_style))
+
+    for line in formatted_results.split('\n'):
+        elements.append(Paragraph(saxutils.escape(line), custom_style))
+
+    if cves:
+        elements.append(Spacer(1, 12))
+        elements.append(Paragraph("CVEs Found:", title_style))
+        data = [['CVE ID']]
+        for cve in cves:
+            data.append([cve])
+        table = Table(data, colWidths=[4.0 * 72])
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ]))
+        elements.append(table)
+    else:
+        elements.append(Spacer(1, 12))
+        elements.append(Paragraph("No CVEs Found", styles['Normal']))
+
+    doc.build(elements)
+    print(f"PDF report generated: {pdf_file_path}")
+    logging.info(f"PDF report generated: {pdf_file_path}")
+
+def generate_html(formatted_results, url, cms, cves):
+    env = Environment(loader=FileSystemLoader('.'))
+    template = env.get_template('report_template.html')
+    html_content = template.render(url=url, cms=cms, date=datetime.now().strftime('%Y-%m-%d %H:%M:%S'), results=formatted_results, cves=cves)
+    html_file_path = 'scan_output.html'
+    with open(html_file_path, 'w') as f:
+        f.write(html_content)
+    print(f"HTML report generated: {html_file_path}")
+    logging.info(f"HTML report generated: {html_file_path}")
+
+def run_scan(url, cms, verbose, scan_output_file):
+    if cms == 'joomla':
+        return run_joomscan(url, verbose, scan_output_file)
+    elif cms == 'wordpress':
+        return run_wpscan(url, verbose, scan_output_file)
+    elif cms == 'typo3':
+        return run_typo3scan(url, verbose, scan_output_file)
+    elif cms == 'aem':
+        return run_aemscan(url, verbose, scan_output_file)
+    elif cms == 'vbscan':
+        return run_vbscan(url, verbose, scan_output_file)
+    elif cms == 'moodle':
+        return run_badmoodle(url, verbose, scan_output_file)
+    elif cms in ['oscommerce', 'coldfusion', 'jboss', 'oracle_e_business', 'phpbb', 'php_nuke', 'dotnetnuke', 'umbraco', 'prestashop', 'opencart', 'magento']:
+        return run_nmap_scan(url, verbose, scan_output_file)
+    elif cms in ['silverstripe', 'drupal']:
+        return run_droopescan(url, cms, verbose)
+    elif cms == 'nmap':
+        return run_nmap_scan(url, verbose, scan_output_file)
+    else:
+        logging.error(f"Unsupported CMS: {cms}")
         return None
 
-def check_common_files(url, cms, config):
-    common_files = config[cms]['common_files']
-    headers = {'User-Agent': 'Mozilla/5.0 (compatible; CMS-Scanner/1.0)'}
+def print_banner():
+    banner = """
+    __  ___ ___  _____        _____   __   ____  ____   ____     ___  ____  
+   /  ]|   |   |/ ___/       / ___/  /  ] /    ||    \ |    \   /  _]|    \ 
+  /  / | _   _ (   \_  _____(   \_  /  / |  o  ||  _  ||  _  | /  [_ |  D  )
+ /  /  |  \_/  |\__  ||     |\__  |/  /  |     ||  |  ||  |  ||    _]|    / 
+/   \_ |   |   |/  \ ||_____|/  \ /   \_ |  _  ||  |  ||  |  ||   [_ |    \ 
+\     ||   |   |\    |       \    \     ||  |  ||  |  ||  |  ||     ||  .  \\
+ \____||___|___| \___|        \___|\____||__|__||__|__||__|__||_____||__|\_|
+ 
+  CMS Scanner: Detects and scans Joomla, WordPress, SilverStripe, Drupal, Typo3, AEM, VBulletin, Moodle, Oscommerce, Coldfusion, Jboss, Oracle E-Business, Phpbb, Php-nuke, Dotnetnuke, Umbraco, Prestashop, Opencart, Magento.
 
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        future_to_file = {executor.submit(make_request, url.rstrip('/') + '/' + file, method='HEAD', headers=headers): file for file in common_files}
-        for future in concurrent.futures.as_completed(future_to_file):
-            try:
-                response = future.result()
-                if response and response.status_code == 200:
-                    logging.info(f"Found common file for {cms}: {future_to_file[future]}")
-                    return True
-            except Exception as e:
-                logging.error(f"Error checking {file} for {cms}: {e}")
-    return False
+                                    BY JMO
 
-def load_cpe_dictionary(file_path='official-cpe-dictionary_v2.3.xml'):
-    if not os.path.exists(file_path):
-        raise FileNotFoundError(f"{file_path} not found")
-    
-    with open(file_path, 'r', encoding='utf-8') as file:
-        lines = file.readlines()
-    
-    return lines
+"""
+    print(banner)
+    logging.info("Printed banner.")
 
-def search_cpe(service, version, cpe_lines):
-    matched_cpes = []
-    pattern = re.compile(r'<cpe-23:cpe23-item name="(cpe:2\.3:[^"]+)"')
-    for line in cpe_lines:
-        if line.strip().startswith('<cpe-23:cpe23-item name="'):
-            match = pattern.search(line)
-            if match and service.lower() in line.lower() and version in line:
-                matched_cpes.append(match.group(1))
-    return matched_cpes
+def main():
+    args = parse_arguments()
+    print_banner()
+    url = args.url
+    verbose = args.verbose
+    output_format = args.output
 
-def extract_cves(cpe_name):
-    try:
-        response = subprocess.check_output(
-            f"curl -s 'https://services.nvd.nist.gov/rest/json/cves/2.0?cpeName={cpe_name}' | jq -r '.vulnerabilities[].cve.id' 2>/dev/null",
-            shell=True
-        )
-        cves = response.decode('utf-8').splitlines()
-        return cves
-    except subprocess.CalledProcessError as e:
-        if "Invalid numeric literal" in str(e):
-            time.sleep(15)
-            return extract_cves(cpe_name)  # Retry after waiting
+    # Prompt for CMS choice
+    cms = prompt_for_cms_choice()
+
+    if not cms:
+        cms = detect_cms(url)
+        if cms:
+            print(f"Detected CMS: {cms}")
+            logging.info(f"Detected CMS: {cms}")
         else:
-            logging.error(f"Error extracting CVEs for {cpe_name}: {e}")
-            return []
+            print("Unknown CMS or unable to detect CMS. Running Nmap scan as fallback.")
+            logging.info("Unknown CMS or unable to detect CMS. Running Nmap scan as fallback.")
+            cms = 'nmap'
 
-def extract_services_and_versions(scan_results):
-    exclude_services = {'version', 'document', 'plugin', 'manager'}
-    services = {}
+    if verbose:
+        logging.info("Verbose mode activated.")
+        print("Verbose mode activated.")
 
-    regex_patterns = {
-        'wpscan': [
-            r'\|\s+-\s([^\s]+)\s+([\d\.]+)',           # Matches "| - plugin 1.2.3"
-            r'\[\+\] ([^:]+): ([\d\.]+)',              # Matches "[+] plugin: 1.2.3"
-            r'Version: ([\d\.]+)'                      # Matches "Version: 1.2.3"
-        ],
-        'joomscan': [
-            r'Joomla! ([\d\.]+)',                      # Matches "Joomla! 1.2.3"
-            r'ver ([\d\.]+)',                          # Matches "ver 1.2.3"
-        ],
-        'droopescan': [
-            r'Possible version\(s\):\s+([\d\.\-rc]+)', # Matches "Possible version(s): 1.2.3"
-            r'(\w+)\s+\(version:\s([\d\.]+)'           # Matches "service (version: 1.2.3)"
-        ],
-        'typo3scan': [
-            r'Identified Version:\s+([\d\.]+)',        # Matches "Identified Version: 10.4.37"
-            r'Extension Title:\s+([^\n]+)',            # Matches "Extension Title: VHS: Fluid ViewHelpers"
-            r'Extension Url:\s+([^\n]+)'               # Matches "Extension Url: https://www.example.com/typo3conf/ext/vhs"
-        ],
-        'aemscan': [
-            r'AEM Version: ([\d\.]+)',                 # Matches "AEM Version: 6.5.0"
-            r'Component: ([^\n]+)',                    # Matches "Component: some-component"
-            r'Vulnerability: ([^\n]+)'                 # Matches "Vulnerability: some-vulnerability"
-        ],
-        'vbscan': [
-            r'vBulletin ([\d\.]+)',                    # Matches "vBulletin 3.7.6"
-            r'\[+\] ([^\n]+)',                         # Matches "[++] some output"
-        ],
-        'nmap': [
-            r'(\d+)/\w+\s+open\s+([\w\-]+)\s+([\d\.]+)',  # Matches "80/tcp open  http 1.1"
-            r'(\d+)/\w+\s+open\s+([\w\-]+)\s+([\w\-]+)'  # Matches "80/tcp open  http  Apache httpd 2.4.7"
-        ]
-    }
+    scan_output_file = 'scan_output.txt'
+    formatted_results = run_scan(url, cms, verbose, scan_output_file)
 
-    def add_service(service, version):
-        service = service.lower()
-        if service not in exclude_services:
-            services[service] = {'version': version}
+    if formatted_results:
+        print("Scan completed successfully.")
+        logging.info("Scan completed successfully.")
+    else:
+        print("Scan failed.")
+        logging.error("Scan failed.")
+        return
 
-    current_tool = None
-    for line in scan_results.split('\n'):
-        if "WPScan" in line:
-            current_tool = 'wpscan'
-        elif "OWASP JoomScan" in line:
-            current_tool = 'joomscan'
-        elif "Droopescan" in line:
-            current_tool = 'droopescan'
-        elif "TYPO3" in line:
-            current_tool = 'typo3scan'
-        elif "AEM Version" in line:
-            current_tool = 'aemscan'
-        elif "OWASP VBScan" in line:
-            current_tool = 'vbscan'
-        elif "Nmap" in line:
-            current_tool = 'nmap'
+    analyzed_results = search_cves_for_services(formatted_results)
 
-        if current_tool:
-            for pattern in regex_patterns[current_tool]:
-                match = re.search(pattern, line, re.IGNORECASE)
-                if match:
-                    if current_tool == 'wpscan':
-                        if len(match.groups()) == 2:
-                            service, version = match.groups()
-                            add_service(service, version)
-                        elif len(match.groups()) == 1:
-                            version = match.group(1)
-                            service = 'wordpress'
-                            add_service(service, version)
-                    elif current_tool == 'joomscan':
-                        if len(match.groups()) == 1:
-                            version = match.group(1)
-                            service = 'joomla'
-                            add_service(service, version)
-                    elif current_tool == 'droopescan':
-                        if len(match.groups()) == 2:
-                            service, version = match.groups()
-                            add_service(service, version)
-                    elif current_tool == 'typo3scan':
-                        if len(match.groups()) == 1:
-                            version = match.group(1)
-                            service = 'typo3'
-                            add_service(service, version)
-                    elif current_tool == 'aemscan':
-                        if len(match.groups()) == 1:
-                            version = match.group(1)
-                            service = 'aem'
-                            add_service(service, version)
-                    elif current_tool == 'vbscan':
-                        if len(match.groups()) == 1:
-                            version = match.group(1)
-                            service = 'vbulletin'
-                            add_service(service, version)
-                    elif current_tool == 'nmap':
-                        if len(match.groups()) == 3:
-                            port, service, version = match.groups()
-                            add_service(service, version)
+    all_cves = set()
+    for service, details in analyzed_results.items():
+        if details['cves']:
+            all_cves.update(details['cves'])
 
-    return services
+    if all_cves:
+        print("CVEs found:")
+        for cve in sorted(all_cves): # Sort for consistent output
+            print(cve)
+    else:
+        print("No CVEs found.")
 
-def analyze_scan_results(scan_results):
-    cpe_lines = load_cpe_dictionary()
-    services = extract_services_and_versions(scan_results)
-    detected_services = {}
-    print("Fetching CVEs...")
-    total_cpes = sum(len(search_cpe(service, details['version'], cpe_lines)) for service, details in services.items())
-    with tqdm(total=total_cpes, desc="Progress", unit="cpe") as pbar:
-        for service, details in services.items():
-            version = details.get('version', 'unknown')
-            cpes = search_cpe(service, version, cpe_lines)
-            all_cves = set()  # Use a set to avoid duplicates
-            for cpe in cpes:
-                cves = extract_cves(cpe)
-                all_cves.update(cves)
-                pbar.update(1)
-            detected_services[service] = {
-                'version': version,
-                'cpes': cpes,
-                'cves': list(all_cves)  # Convert set back to list
-            }
-    return detected_services
+    if output_format == 'pdf':
+        generate_pdf(formatted_results, url, cms, list(all_cves))
+    elif output_format == 'html':
+        generate_html(formatted_results, url, cms, list(all_cves))
+    else:
+        with open('scan_output.txt', 'w') as f:
+            f.write(formatted_results)
+        print("Scan Results:")
+        print(formatted_results)
 
+if __name__ == '__main__':
+    main()                                                                                                       
