@@ -51,6 +51,15 @@ def detect_cms(url):
             'magento': check_magento
         }
 
+        # Check for redirection
+        initial_response = make_request(url, allow_redirects=False)
+        if initial_response and initial_response.is_redirect:
+            redirected_url = initial_response.headers['Location']
+            if not redirected_url.startswith(('http://', 'https://')):
+                redirected_url = urljoin(url, redirected_url)
+            print(f"You've been redirected to: {redirected_url}")
+            url = redirected_url
+
         detected_cms = []
         with concurrent.futures.ThreadPoolExecutor() as executor:
             future_to_cms = {executor.submit(check_function, url): cms for cms, check_function in cms_checks.items()}
