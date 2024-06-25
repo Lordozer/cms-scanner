@@ -5,8 +5,10 @@ from scanner_utils import make_request, check_common_files
 from config_loader import load_config
 import concurrent.futures
 
+# Load configuration settings
 config = load_config()
 
+# Define priorities for various CMS platforms
 CMS_PRIORITIES = {
     'wordpress': 1,
     'joomla': 2,
@@ -30,7 +32,15 @@ CMS_PRIORITIES = {
 }
 
 def detect_cms(url, verify_ssl=True):
+    """
+    Detects the CMS used by the given URL.
+
+    :param url: The URL of the site to scan
+    :param verify_ssl: Whether to verify SSL certificates
+    :return: The detected CMS or None if not detected
+    """
     try:
+        # Define the functions used to check for each CMS
         cms_checks = {
             'joomla': check_joomla,
             'wordpress': check_wordpress,
@@ -54,6 +64,8 @@ def detect_cms(url, verify_ssl=True):
         }
 
         detected_cms = []
+
+        # Use a ThreadPoolExecutor to run CMS checks concurrently
         with concurrent.futures.ThreadPoolExecutor() as executor:
             future_to_cms = {executor.submit(check_function, url, verify_ssl): cms for cms, check_function in cms_checks.items()}
             for future in concurrent.futures.as_completed(future_to_cms):
@@ -76,6 +88,7 @@ def detect_cms(url, verify_ssl=True):
         logging.error(f"Error detecting CMS: {e}")
         return None
 
+# CMS-specific detection functions
 def check_joomla(url, verify_ssl=True):
     joomla_indicators = ['content="Joomla!', 'Joomla', 'index.php?option=com_', '/media/system/js/']
     return check_cms(url, joomla_indicators, 'joomla', verify_ssl)
@@ -153,6 +166,15 @@ def check_magento(url, verify_ssl=True):
     return check_cms(url, magento_indicators, 'magento', verify_ssl)
 
 def check_cms(url, indicators, cms, verify_ssl=True):
+    """
+    Checks if a given CMS is used by the specified URL.
+
+    :param url: The URL of the site to scan
+    :param indicators: A list of strings indicating the presence of the CMS
+    :param cms: The name of the CMS being checked
+    :param verify_ssl: Whether to verify SSL certificates
+    :return: True if the CMS is detected, False otherwise
+    """
     try:
         response = make_request(url, headers={'User-Agent': 'Mozilla/5.0 (compatible; CMS-Scanner/1.0)'}, verify_ssl=verify_ssl)
         if not response:
