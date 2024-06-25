@@ -16,18 +16,23 @@ import subprocess
 import re
 from tqdm import tqdm
 import platform
+import requests
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
-
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+# Set up logging
 setup_logging()
 
-
+# Function to parse command-line arguments
 def parse_arguments():
     parser = argparse.ArgumentParser(description='CMS Vulnerability Scanner')
     parser.add_argument('-u', '--url', required=True, help='The URL of the site to scan')
     parser.add_argument('-v', '--verbose', action='store_true', help='Enable verbose mode')
     parser.add_argument('-o', '--output', choices=['pdf', 'html', 'text'], default='text', help='Output format')
+    parser.add_argument('--no-verify-ssl', action='store_true', help='Bypass SSL certificate verification')
     return parser.parse_args()
 
+# Function to prompt user for manual CMS selection
 def prompt_for_cms_choice():
     choice = input("Do you want to specify the CMS manually? (yes/no): ").strip().lower()
     if choice == 'yes':
@@ -42,12 +47,16 @@ def prompt_for_cms_choice():
         print("Invalid choice. Please enter 'yes' or 'no'.")
         return prompt_for_cms_choice()
 
-def run_nmap_scan(url, verbose=False, output_file=None):
+# Function to run Nmap scan
+def run_nmap_scan(url, verbose=False, output_file=None, verify_ssl=True):
     print("Launching Nmap scan...")
     scan_output_file = output_file or 'nmap_output.txt'
     try:
         domain = url.replace('https://', '').replace('http://', '').strip('/')
-        result = subprocess.Popen(['nmap', '-p-', '-A', domain], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        nmap_command = ['nmap', '-p-', '-A', domain]
+        if not verify_ssl:
+            nmap_command.append('--script ssl-cert')
+        result = subprocess.Popen(nmap_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         with open(scan_output_file, 'w') as file:
             for line in result.stdout:
                 file.write(line)
@@ -61,7 +70,8 @@ def run_nmap_scan(url, verbose=False, output_file=None):
         logging.error(f"Error running Nmap: {e}")
     return None
 
-def run_joomscan(url, verbose=False, output_file=None):
+# Function to run Joomla scanner
+def run_joomscan(url, verbose=False, output_file=None, verify_ssl=True):
     print("Launching Joomla scanner...")
     scan_output_file = output_file or 'joomscan_output.txt'
     try:
@@ -72,7 +82,10 @@ def run_joomscan(url, verbose=False, output_file=None):
             # Use the perl command for other distributions
             original_directory = os.getcwd()
             os.chdir('joomscan')
-            result = subprocess.Popen(['perl', 'joomscan.pl', '--url', url], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+            joomscan_command = ['perl', 'joomscan.pl', '--url', url]
+            if not verify_ssl:
+                joomscan_command.append('--no-verify-ssl')
+            result = subprocess.Popen(joomscan_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
             os.chdir(original_directory)
 
         with open(scan_output_file, 'w') as file:
@@ -88,11 +101,15 @@ def run_joomscan(url, verbose=False, output_file=None):
         logging.error(f"Error running JoomScan: {e}")
     return None
 
-def run_wpscan(url, verbose=False, output_file=None):
+# Function to run WordPress scanner
+def run_wpscan(url, verbose=False, output_file=None, verify_ssl=True):
     print("Launching WordPress scanner...")
     scan_output_file = output_file or 'wpscan_output.txt'
     try:
-        result = subprocess.Popen(['wpscan', '--url', url, '--detection-mode', 'passive'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        wpscan_command = ['wpscan', '--url', url, '--detection-mode', 'passive']
+        if not verify_ssl:
+            wpscan_command.append('--disable-tls-checks')
+        result = subprocess.Popen(wpscan_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         with open(scan_output_file, 'w') as file:
             for line in result.stdout:
                 file.write(line)
@@ -106,13 +123,15 @@ def run_wpscan(url, verbose=False, output_file=None):
         logging.error(f"Error running WPScan: {e}")
     return None
 
-def run_droopescan(url, cms_type, verbose=False):
+# Function to run Droopescan
+def run_droopescan(url, cms_type, verbose=False, verify_ssl=True):
     print("Launching Droopescan...")
     original_directory = os.getcwd()
     os.chdir('droopescan')
     scan_output_file = 'droopescan_output.txt'
     try:
-        result = subprocess.Popen(['./droopescan', 'scan', cms_type, '-u', url], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        droopescan_command = ['./droopescan', 'scan', cms_type, '-u', url]
+        result = subprocess.Popen(droopescan_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         with open(scan_output_file, 'w') as file:
             for line in result.stdout:
                 file.write(line)
@@ -128,13 +147,17 @@ def run_droopescan(url, cms_type, verbose=False):
     finally:
         os.chdir(original_directory)
 
-def run_typo3scan(url, verbose=False, output_file=None):
+# Function to run Typo3 scanner
+def run_typo3scan(url, verbose=False, output_file=None, verify_ssl=True):
     print("Launching Typo3 scanner...")
     original_directory = os.getcwd()
     os.chdir('Typo3Scan')
     scan_output_file = output_file or 'typo3scan_output.txt'
     try:
-        result = subprocess.Popen(['python3', 'typo3scan.py', '-d', url, '--vuln'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        typo3scan_command = ['python3', 'typo3scan.py', '-d', url, '--vuln']
+        if not verify_ssl:
+            typo3scan_command.append('--no-verify-ssl')
+        result = subprocess.Popen(typo3scan_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         with open(scan_output_file, 'w') as file:
             for line in result.stdout:
                 file.write(line)
@@ -150,13 +173,17 @@ def run_typo3scan(url, verbose=False, output_file=None):
     finally:
         os.chdir(original_directory)
 
-def run_aemscan(url, verbose=False, output_file=None):
+# Function to run AEM scanner
+def run_aemscan(url, verbose=False, output_file=None, verify_ssl=True):
     print("Launching AEM scanner...")
     original_directory = os.getcwd()
     os.chdir('aemscan')
     scan_output_file = output_file or 'aemscan_output.txt'
     try:
-        result = subprocess.Popen(['aemscan', url], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        aemscan_command = ['aemscan', url]
+        if not verify_ssl:
+            aemscan_command.append('--no-verify-ssl')
+        result = subprocess.Popen(aemscan_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         with open(scan_output_file, 'w') as file:
             for line in result.stdout:
                 file.write(line)
@@ -172,13 +199,17 @@ def run_aemscan(url, verbose=False, output_file=None):
     finally:
         os.chdir(original_directory)
 
-def run_vbscan(url, verbose=False, output_file=None):
+# Function to run VB scanner
+def run_vbscan(url, verbose=False, output_file=None, verify_ssl=True):
     print("Launching VB scanner...")
     original_directory = os.getcwd()
     os.chdir('vbscan')
     scan_output_file = output_file or 'vbscan_output.txt'
     try:
-        result = subprocess.Popen(['./vbscan.pl', url], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        vbscan_command = ['./vbscan.pl', url]
+        if not verify_ssl:
+            vbscan_command.append('--no-verify-ssl')
+        result = subprocess.Popen(vbscan_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         with open(scan_output_file, 'w') as file:
             for line in result.stdout:
                 file.write(line)
@@ -194,13 +225,17 @@ def run_vbscan(url, verbose=False, output_file=None):
     finally:
         os.chdir(original_directory)
 
-def run_badmoodle(url, verbose=False, output_file=None):
+# Function to run Moodle scanner
+def run_badmoodle(url, verbose=False, output_file=None, verify_ssl=True):
     print("Launching badmoodle scanner...")
     original_directory = os.getcwd()
     os.chdir('badmoodle')
     scan_output_file = output_file or 'badmoodle_output.txt'
     try:
-        result = subprocess.Popen(['./badmoodle.py', '-u', url, '-l', '2'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        badmoodle_command = ['./badmoodle.py', '-u', url, '-l', '2']
+        if not verify_ssl:
+            badmoodle_command.append('--no-verify-ssl')
+        result = subprocess.Popen(badmoodle_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         with open(scan_output_file, 'w') as file:
             for line in result.stdout:
                 file.write(line)
@@ -216,6 +251,7 @@ def run_badmoodle(url, verbose=False, output_file=None):
     finally:
         os.chdir(original_directory)
 
+# Function to search for CVEs for services
 def search_cves_for_services(scan_results):
     analyzed_results = analyze_scan_results(scan_results)
     all_cves = set()
@@ -224,6 +260,7 @@ def search_cves_for_services(scan_results):
             all_cves.update(details['cves'])
     return analyzed_results
 
+# Function to generate PDF report
 def generate_pdf(formatted_results, url, cms, cves):
     pdf_file_path = 'scan_output.pdf'
     doc = SimpleDocTemplate(pdf_file_path, pagesize=letter)
@@ -254,7 +291,7 @@ def generate_pdf(formatted_results, url, cms, cves):
     elements.append(Paragraph("Scan Results:", title_style))
 
     for line in formatted_results.split('\n'):
-        elements.append(Paragraph(saxutils.escape(line), custom_style))
+        elements.append(Paragraph(line, custom_style))
 
     if cves:
         elements.append(Spacer(1, 12))
@@ -281,6 +318,7 @@ def generate_pdf(formatted_results, url, cms, cves):
     print(f"PDF report generated: {pdf_file_path}")
     logging.info(f"PDF report generated: {pdf_file_path}")
 
+# Function to generate HTML report
 def generate_html(formatted_results, url, cms, cves):
     env = Environment(loader=FileSystemLoader('.'))
     template = env.get_template('report_template.html')
@@ -291,59 +329,62 @@ def generate_html(formatted_results, url, cms, cves):
     print(f"HTML report generated: {html_file_path}")
     logging.info(f"HTML report generated: {html_file_path}")
 
-def run_scan(url, cms, verbose, scan_output_file):
+# Function to run the appropriate scanner based on CMS type
+def run_scan(url, cms, verbose, scan_output_file, verify_ssl=True):
     if cms == 'joomla':
-        return run_joomscan(url, verbose, scan_output_file)
+        return run_joomscan(url, verbose, scan_output_file, verify_ssl)
     elif cms == 'wordpress':
-        return run_wpscan(url, verbose, scan_output_file)
+        return run_wpscan(url, verbose, scan_output_file, verify_ssl)
     elif cms == 'typo3':
-        return run_typo3scan(url, verbose, scan_output_file)
+        return run_typo3scan(url, verbose, scan_output_file, verify_ssl)
     elif cms == 'aem':
-        return run_aemscan(url, verbose, scan_output_file)
+        return run_aemscan(url, verbose, scan_output_file, verify_ssl)
     elif cms == 'vbscan':
-        return run_vbscan(url, verbose, scan_output_file)
+        return run_vbscan(url, verbose, scan_output_file, verify_ssl)
     elif cms == 'moodle':
-        return run_badmoodle(url, verbose, scan_output_file)
+        return run_badmoodle(url, verbose, scan_output_file, verify_ssl)
     elif cms in ['oscommerce', 'coldfusion', 'jboss', 'oracle_e_business', 'phpbb', 'php_nuke', 'dotnetnuke', 'umbraco', 'prestashop', 'opencart', 'magento']:
-        return run_nmap_scan(url, verbose, scan_output_file)
+        return run_nmap_scan(url, verbose, scan_output_file, verify_ssl)
     elif cms in ['silverstripe', 'drupal']:
-        return run_droopescan(url, cms, verbose)
+        return run_droopescan(url, cms, verbose, verify_ssl)
     elif cms == 'nmap':
-        return run_nmap_scan(url, verbose, scan_output_file)
+        return run_nmap_scan(url, verbose, scan_output_file, verify_ssl)
     else:
         logging.error(f"Unsupported CMS: {cms}")
         return None
 
+# Function to print the tool banner
 def print_banner():
     banner = """
-    __  ___ ___  _____        _____   __   ____  ____   ____     ___  ____  
-   /  ]|   |   |/ ___/       / ___/  /  ] /    ||    \ |    \   /  _]|    \ 
-  /  / | _   _ (   \_  _____(   \_  /  / |  o  ||  _  ||  _  | /  [_ |  D  )
- /  /  |  \_/  |\__  ||     |\__  |/  /  |     ||  |  ||  |  ||    _]|    / 
-/   \_ |   |   |/  \ ||_____|/  \ /   \_ |  _  ||  |  ||  |  ||   [_ |    \ 
-\     ||   |   |\    |       \    \     ||  |  ||  |  ||  |  ||     ||  .  \\
- \____||___|___| \___|        \___|\____||__|__||__|__||__|__||_____||__|\_|
- 
-  CMS Scanner: Detects and scans Joomla, WordPress, SilverStripe, Drupal, Typo3, AEM, VBulletin, Moodle, Oscommerce, Coldfusion, Jboss, Oracle E-Business, Phpbb, Php-nuke, Dotnetnuke, Umbraco, Prestashop, Opencart, Magento.
+  __ ___ ___ _____    _____  __  ____ ____  ____   ___ ____  
+ / ]|  |  |/ ___/    / ___/ / ] /  | |  | |  |  | / _]|  | \ 
+/ / |  |  (   \_    (   \_ / / |    |  | |  |  | / [_ |    |
+/ / |  |  |\__  |    \__  |/ /  |  D  |  |  |  |  |  |   |  |
+\  \|  :  |/  \ |    /  \  \  \  |    |  |  |  |  |  |   |  |
+ \____|_|\_|\___|    \___|  \____|\____|__|__|____|__|____|
 
-                                    BY JMO
+CMS Scanner: Detects and scans Joomla, WordPress, SilverStripe, Drupal, Typo3, AEM, VBulletin, Moodle, Oscommerce, Coldfusion, Jboss, Oracle E-Business, Phpbb, Php-nuke, Dotnetnuke, Umbraco, Prestashop, Opencart, Magento.
+
+                  BY JMO
 
 """
     print(banner)
     logging.info("Printed banner.")
 
+# Main function
 def main():
     args = parse_arguments()
     print_banner()
     url = args.url
     verbose = args.verbose
     output_format = args.output
+    verify_ssl = not args.no_verify_ssl
 
     # Prompt for CMS choice
     cms = prompt_for_cms_choice()
 
     if not cms:
-        cms = detect_cms(url)
+        cms = detect_cms(url, verify_ssl)
         if cms:
             print(f"Detected CMS: {cms}")
             logging.info(f"Detected CMS: {cms}")
@@ -357,7 +398,7 @@ def main():
         print("Verbose mode activated.")
 
     scan_output_file = 'scan_output.txt'
-    formatted_results = run_scan(url, cms, verbose, scan_output_file)
+    formatted_results = run_scan(url, cms, verbose, scan_output_file, verify_ssl)
 
     if formatted_results:
         print("Scan completed successfully.")
@@ -376,7 +417,7 @@ def main():
 
     if all_cves:
         print("CVEs found:")
-        for cve in sorted(all_cves):  # Sort for consistent output
+        for cve in sorted(all_cves): # Sort for consistent output
             print(cve)
     else:
         print("No CVEs found.")
@@ -393,4 +434,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-                                                                                                                    
