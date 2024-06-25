@@ -1,9 +1,9 @@
+import requests
+from bs4 import BeautifulSoup
 import logging
 from scanner_utils import make_request, check_common_files
 from config_loader import load_config
-from urllib.parse import urljoin
 import concurrent.futures
-
 
 config = load_config()
 
@@ -29,7 +29,7 @@ CMS_PRIORITIES = {
     'opencart': 19
 }
 
-def detect_cms(url):
+def detect_cms(url, verify_ssl=True):
     try:
         cms_checks = {
             'joomla': check_joomla,
@@ -53,18 +53,9 @@ def detect_cms(url):
             'magento': check_magento
         }
 
-        # Check for redirection
-        initial_response = make_request(url, allow_redirects=False)
-        if initial_response and initial_response.is_redirect:
-            redirected_url = initial_response.headers['Location']
-            if not redirected_url.startswith(('http://', 'https://')):
-                redirected_url = urljoin(url, redirected_url)
-            print(f"You've been redirected to: {redirected_url}")
-            url = redirected_url
-
         detected_cms = []
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            future_to_cms = {executor.submit(check_function, url): cms for cms, check_function in cms_checks.items()}
+            future_to_cms = {executor.submit(check_function, url, verify_ssl): cms for cms, check_function in cms_checks.items()}
             for future in concurrent.futures.as_completed(future_to_cms):
                 cms = future_to_cms[future]
                 try:
@@ -75,10 +66,9 @@ def detect_cms(url):
                     logging.error(f"Error detecting {cms}: {e}")
 
         if detected_cms:
-            # Sort detected CMS by priority
             detected_cms.sort(key=lambda cms: CMS_PRIORITIES.get(cms, float('inf')))
             logging.info(f"Detected CMSs in order of priority: {detected_cms}")
-            return detected_cms[0]  # Return the CMS with the highest priority
+            return detected_cms[0]
         else:
             logging.info("No CMS detected")
             return None
@@ -86,91 +76,91 @@ def detect_cms(url):
         logging.error(f"Error detecting CMS: {e}")
         return None
 
-def check_joomla(url):
+def check_joomla(url, verify_ssl=True):
     joomla_indicators = ['content="Joomla!', 'Joomla', 'index.php?option=com_', '/media/system/js/']
-    return check_cms(url, joomla_indicators, 'joomla')
+    return check_cms(url, joomla_indicators, 'joomla', verify_ssl)
 
-def check_wordpress(url):
+def check_wordpress(url, verify_ssl=True):
     wordpress_indicators = ['wp-content', 'WordPress', 'wp-includes', '?ver=', 'wp-json']
-    return check_cms(url, wordpress_indicators, 'wordpress')
+    return check_cms(url, wordpress_indicators, 'wordpress', verify_ssl)
 
-def check_silverstripe(url):
+def check_silverstripe(url, verify_ssl=True):
     silverstripe_indicators = ['SilverStripe', 'Security/login', 'cms/', 'framework/']
-    return check_cms(url, silverstripe_indicators, 'silverstripe')
+    return check_cms(url, silverstripe_indicators, 'silverstripe', verify_ssl)
 
-def check_drupal(url):
+def check_drupal(url, verify_ssl=True):
     drupal_indicators = ['Drupal', 'X-Generator']
-    return check_cms(url, drupal_indicators, 'drupal')
+    return check_cms(url, drupal_indicators, 'drupal', verify_ssl)
 
-def check_typo3(url):
+def check_typo3(url, verify_ssl=True):
     typo3_indicators = ['typo3', 'TYPO3']
-    return check_cms(url, typo3_indicators, 'typo3')
+    return check_cms(url, typo3_indicators, 'typo3', verify_ssl)
 
-def check_aem(url):
+def check_aem(url, verify_ssl=True):
     aem_indicators = ['AEM', 'Adobe Experience Manager']
-    return check_cms(url, aem_indicators, 'aem')
+    return check_cms(url, aem_indicators, 'aem', verify_ssl)
 
-def check_vbscan(url):
+def check_vbscan(url, verify_ssl=True):
     vbscan_indicators = ['vBulletin', 'vBSEO']
-    return check_cms(url, vbscan_indicators, 'vbscan')
+    return check_cms(url, vbscan_indicators, 'vbscan', verify_ssl)
 
-def check_moodle(url):
+def check_moodle(url, verify_ssl=True):
     moodle_indicators = ['Moodle']
-    return check_cms(url, moodle_indicators, 'moodle')
+    return check_cms(url, moodle_indicators, 'moodle', verify_ssl)
 
-def check_oscommerce(url):
+def check_oscommerce(url, verify_ssl=True):
     oscommerce_indicators = ['osCommerce', 'oscommerce']
-    return check_cms(url, oscommerce_indicators, 'oscommerce')
+    return check_cms(url, oscommerce_indicators, 'oscommerce', verify_ssl)
 
-def check_coldfusion(url):
+def check_coldfusion(url, verify_ssl=True):
     coldfusion_indicators = ['ColdFusion']
-    return check_cms(url, coldfusion_indicators, 'coldfusion')
+    return check_cms(url, coldfusion_indicators, 'coldfusion', verify_ssl)
 
-def check_jboss(url):
+def check_jboss(url, verify_ssl=True):
     jboss_indicators = ['JBoss']
-    return check_cms(url, jboss_indicators, 'jboss')
+    return check_cms(url, jboss_indicators, 'jboss', verify_ssl)
 
-def check_oracle_e_business(url):
+def check_oracle_e_business(url, verify_ssl=True):
     oracle_indicators = ['Oracle E-Business', 'Oracle']
-    return check_cms(url, oracle_indicators, 'oracle_e_business')
+    return check_cms(url, oracle_indicators, 'oracle_e_business', verify_ssl)
 
-def check_phpbb(url):
+def check_phpbb(url, verify_ssl=True):
     phpbb_indicators = ['phpBB']
-    return check_cms(url, phpbb_indicators, 'phpbb')
+    return check_cms(url, phpbb_indicators, 'phpbb', verify_ssl)
 
-def check_php_nuke(url):
+def check_php_nuke(url, verify_ssl=True):
     phpnuke_indicators = ['PHP-Nuke', 'phpnuke']
-    return check_cms(url, phpnuke_indicators, 'php_nuke')
+    return check_cms(url, phpnuke_indicators, 'php_nuke', verify_ssl)
 
-def check_dotnetnuke(url):
+def check_dotnetnuke(url, verify_ssl=True):
     dotnetnuke_indicators = ['DotNetNuke', 'DNN']
-    return check_cms(url, dotnetnuke_indicators, 'dotnetnuke')
+    return check_cms(url, dotnetnuke_indicators, 'dotnetnuke', verify_ssl)
 
-def check_umbraco(url):
+def check_umbraco(url, verify_ssl=True):
     umbraco_indicators = ['Umbraco']
-    return check_cms(url, umbraco_indicators, 'umbraco')
+    return check_cms(url, umbraco_indicators, 'umbraco', verify_ssl)
 
-def check_prestashop(url):
+def check_prestashop(url, verify_ssl=True):
     prestashop_indicators = ['PrestaShop']
-    return check_cms(url, prestashop_indicators, 'prestashop')
+    return check_cms(url, prestashop_indicators, 'prestashop', verify_ssl)
 
-def check_opencart(url):
+def check_opencart(url, verify_ssl=True):
     opencart_indicators = ['OpenCart']
-    return check_cms(url, opencart_indicators, 'opencart')
+    return check_cms(url, opencart_indicators, 'opencart', verify_ssl)
 
-def check_magento(url):
+def check_magento(url, verify_ssl=True):
     magento_indicators = ['Magento']
-    return check_cms(url, magento_indicators, 'magento')
+    return check_cms(url, magento_indicators, 'magento', verify_ssl)
 
-def check_cms(url, indicators, cms):
+def check_cms(url, indicators, cms, verify_ssl=True):
     try:
-        response = make_request(url, headers={'User-Agent': 'Mozilla/5.0 (compatible; CMS-Scanner/1.0)'})
+        response = make_request(url, headers={'User-Agent': 'Mozilla/5.0 (compatible; CMS-Scanner/1.0)'}, verify_ssl=verify_ssl)
         if not response:
             return False
         if any(indicator in response.text for indicator in indicators) or any(indicator in response.headers.get('X-Powered-By', '') for indicator in indicators):
             logging.info(f"Detected {cms} by indicators")
             return True
-        result = check_common_files(url, cms, config)
+        result = check_common_files(url, cms, config, verify_ssl)
         if result:
             logging.info(f"Detected {cms} by common files")
         return result
