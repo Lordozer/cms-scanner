@@ -8,6 +8,16 @@ import time
 from tqdm import tqdm
 
 def make_request(url, method='GET', headers=None, timeout=10, verify_ssl=True):
+    """
+    Makes an HTTP request to the given URL.
+
+    :param url: The URL to request
+    :param method: The HTTP method to use (default: 'GET')
+    :param headers: Optional headers to include in the request
+    :param timeout: The request timeout in seconds (default: 10)
+    :param verify_ssl: Whether to verify SSL certificates (default: True)
+    :return: The response object or None if the request failed
+    """
     try:
         if method == 'GET':
             response = requests.get(url, headers=headers, timeout=timeout, allow_redirects=True, verify=verify_ssl)
@@ -20,6 +30,15 @@ def make_request(url, method='GET', headers=None, timeout=10, verify_ssl=True):
         return None
 
 def check_common_files(url, cms, config, verify_ssl=True):
+    """
+    Checks for common files associated with a CMS.
+
+    :param url: The URL to scan
+    :param cms: The CMS name
+    :param config: The configuration dictionary
+    :param verify_ssl: Whether to verify SSL certificates
+    :return: True if any common file is found, False otherwise
+    """
     common_files = config[cms]['common_files']
     headers = {'User-Agent': 'Mozilla/5.0 (compatible; CMS-Scanner/1.0)'}
 
@@ -36,6 +55,13 @@ def check_common_files(url, cms, config, verify_ssl=True):
     return False
 
 def load_cpe_dictionary(file_path='official-cpe-dictionary_v2.3.xml'):
+    """
+    Loads the CPE (Common Platform Enumeration) dictionary from an XML file.
+
+    :param file_path: The path to the CPE dictionary file
+    :return: A list of CPE dictionary lines
+    :raises FileNotFoundError: If the CPE dictionary file is not found
+    """
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"{file_path} not found")
 
@@ -45,6 +71,14 @@ def load_cpe_dictionary(file_path='official-cpe-dictionary_v2.3.xml'):
     return lines
 
 def search_cpe(service, version, cpe_lines):
+    """
+    Searches for CPE entries matching the given service and version.
+
+    :param service: The service name
+    :param version: The service version
+    :param cpe_lines: The list of CPE dictionary lines
+    :return: A list of matched CPE names
+    """
     matched_cpes = []
     pattern = re.compile(r'<cpe-23:cpe23-item name="(cpe:2\.3:[^"]+)"')
     for line in cpe_lines:
@@ -55,6 +89,12 @@ def search_cpe(service, version, cpe_lines):
     return matched_cpes
 
 def extract_cves(cpe_name):
+    """
+    Extracts CVEs related to a given CPE name.
+
+    :param cpe_name: The CPE name
+    :return: A list of CVE IDs
+    """
     try:
         response = subprocess.check_output(
             f"curl -s 'https://services.nvd.nist.gov/rest/json/cves/2.0?cpeName={cpe_name}' | jq -r '.vulnerabilities[].cve.id' 2>/dev/null",
@@ -65,46 +105,52 @@ def extract_cves(cpe_name):
     except subprocess.CalledProcessError as e:
         if "Invalid numeric literal" in str(e):
             time.sleep(15)
-            return extract_cves(cpe_name) # Retry after waiting
+            return extract_cves(cpe_name)  # Retry after waiting
         else:
             logging.error(f"Error extracting CVEs for {cpe_name}: {e}")
             return []
 
 def extract_services_and_versions(scan_results):
+    """
+    Extracts services and versions from scan results.
+
+    :param scan_results: The scan results
+    :return: A dictionary of services and their versions
+    """
     exclude_services = {'version', 'document', 'plugin', 'manager'}
     services = {}
 
     regex_patterns = {
         'wpscan': [
-            r'\|\s+-\s([^\s]+)\s+([\d\.]+)',      # Matches "| - plugin 1.2.3"
-            r'\[\+\] ([^:]+): ([\d\.]+)',       # Matches "[+] plugin: 1.2.3"
-            r'Version: ([\d\.]+)'           # Matches "Version: 1.2.3"
+            r'\|\s+-\s([^\s]+)\s+([\d\.]+)',  # Matches "| - plugin 1.2.3"
+            r'\[\+\] ([^:]+): ([\d\.]+)',  # Matches "[+] plugin: 1.2.3"
+            r'Version: ([\d\.]+)'  # Matches "Version: 1.2.3"
         ],
         'joomscan': [
-            r'Joomla! ([\d\.]+)',           # Matches "Joomla! 1.2.3"
-            r'ver ([\d\.]+)',             # Matches "ver 1.2.3"
+            r'Joomla! ([\d\.]+)',  # Matches "Joomla! 1.2.3"
+            r'ver ([\d\.]+)',  # Matches "ver 1.2.3"
         ],
         'droopescan': [
-            r'Possible version\(s\):\s+([\d\.\-rc]+)', # Matches "Possible version(s): 1.2.3"
-            r'(\w+)\s+\(version:\s([\d\.]+)'      # Matches "service (version: 1.2.3)"
+            r'Possible version\(s\):\s+([\d\.\-rc]+)',  # Matches "Possible version(s): 1.2.3"
+            r'(\w+)\s+\(version:\s([\d\.]+)'  # Matches "service (version: 1.2.3)"
         ],
         'typo3scan': [
-            r'Identified Version:\s+([\d\.]+)',    # Matches "Identified Version: 10.4.37"
-            r'Extension Title:\s+([^\n]+)',      # Matches "Extension Title: VHS: Fluid ViewHelpers"
-            r'Extension Url:\s+([^\n]+)'        # Matches "Extension Url: https://www.example.com/typo3conf/ext/vhs"
+            r'Identified Version:\s+([\d\.]+)',  # Matches "Identified Version: 10.4.37"
+            r'Extension Title:\s+([^\n]+)',  # Matches "Extension Title: VHS: Fluid ViewHelpers"
+            r'Extension Url:\s+([^\n]+)'  # Matches "Extension Url: https://www.example.com/typo3conf/ext/vhs"
         ],
         'aemscan': [
-            r'AEM Version: ([\d\.]+)',         # Matches "AEM Version: 6.5.0"
-            r'Component: ([^\n]+)',          # Matches "Component: some-component"
-            r'Vulnerability: ([^\n]+)'         # Matches "Vulnerability: some-vulnerability"
+            r'AEM Version: ([\d\.]+)',  # Matches "AEM Version: 6.5.0"
+            r'Component: ([^\n]+)',  # Matches "Component: some-component"
+            r'Vulnerability: ([^\n]+)'  # Matches "Vulnerability: some-vulnerability"
         ],
         'vbscan': [
-            r'vBulletin ([\d\.]+)',          # Matches "vBulletin 3.7.6"
-            r'\[+\] ([^\n]+)',             # Matches "[++] some output"
+            r'vBulletin ([\d\.]+)',  # Matches "vBulletin 3.7.6"
+            r'\[+\] ([^\n]+)',  # Matches "[++] some output"
         ],
         'nmap': [
-            r'(\d+)/\w+\s+open\s+([\w\-]+)\s+([\d\.]+)', # Matches "80/tcp open http 1.1"
-            r'(\d+)/\w+\s+open\s+([\w\-]+)\s+([\w\-]+)' # Matches "80/tcp open http Apache httpd 2.4.7"
+            r'(\d+)/\w+\s+open\s+([\w\-]+)\s+([\d\.]+)',  # Matches "80/tcp open http 1.1"
+            r'(\d+)/\w+\s+open\s+([\w\-]+)\s+([\w\-]+)'  # Matches "80/tcp open http Apache httpd 2.4.7"
         ]
     }
 
@@ -174,6 +220,12 @@ def extract_services_and_versions(scan_results):
     return services
 
 def analyze_scan_results(scan_results):
+    """
+    Analyzes scan results to extract services, versions, and associated CVEs.
+
+    :param scan_results: The scan results
+    :return: A dictionary of detected services and their CVEs
+    """
     cpe_lines = load_cpe_dictionary()
     services = extract_services_and_versions(scan_results)
     detected_services = {}
@@ -183,7 +235,7 @@ def analyze_scan_results(scan_results):
         for service, details in services.items():
             version = details.get('version', 'unknown')
             cpes = search_cpe(service, version, cpe_lines)
-            all_cves = set() # Use a set to avoid duplicates
+            all_cves = set()  # Use a set to avoid duplicates
             for cpe in cpes:
                 cves = extract_cves(cpe)
                 all_cves.update(cves)
@@ -191,6 +243,6 @@ def analyze_scan_results(scan_results):
             detected_services[service] = {
                 'version': version,
                 'cpes': cpes,
-                'cves': list(all_cves) # Convert set back to list
+                'cves': list(all_cves)  # Convert set back to list
             }
     return detected_services
