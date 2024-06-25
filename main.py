@@ -19,12 +19,18 @@ import platform
 import requests
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
+# Disable SSL warnings for requests
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+
 # Set up logging
 setup_logging()
 
-# Function to parse command-line arguments
 def parse_arguments():
+    """
+    Parses command-line arguments for the CMS vulnerability scanner.
+
+    :return: Parsed arguments
+    """
     parser = argparse.ArgumentParser(description='CMS Vulnerability Scanner')
     parser.add_argument('-u', '--url', required=True, help='The URL of the site to scan')
     parser.add_argument('-v', '--verbose', action='store_true', help='Enable verbose mode')
@@ -32,8 +38,12 @@ def parse_arguments():
     parser.add_argument('--no-verify-ssl', action='store_true', help='Bypass SSL certificate verification')
     return parser.parse_args()
 
-# Function to prompt user for manual CMS selection
 def prompt_for_cms_choice():
+    """
+    Prompts the user to manually specify the CMS if desired.
+
+    :return: The specified CMS or None if not specified
+    """
     choice = input("Do you want to specify the CMS manually? (yes/no): ").strip().lower()
     if choice == 'yes':
         cms = input("Please specify the CMS (joomla, wordpress, silverstripe, drupal, typo3, aem, vbscan, moodle, oscommerce, coldfusion, jboss, oracle_e_business, phpbb, php_nuke, dotnetnuke, umbraco, prestashop, opencart, magento): ").strip().lower()
@@ -47,8 +57,16 @@ def prompt_for_cms_choice():
         print("Invalid choice. Please enter 'yes' or 'no'.")
         return prompt_for_cms_choice()
 
-# Function to run Nmap scan
 def run_nmap_scan(url, verbose=False, output_file=None, verify_ssl=True):
+    """
+    Runs an Nmap scan on the given URL.
+
+    :param url: The URL to scan
+    :param verbose: Whether to enable verbose output
+    :param output_file: The file to save the scan results
+    :param verify_ssl: Whether to verify SSL certificates
+    :return: The scan results as a string
+    """
     print("Launching Nmap scan...")
     scan_output_file = output_file or 'nmap_output.txt'
     try:
@@ -68,8 +86,16 @@ def run_nmap_scan(url, verbose=False, output_file=None, verify_ssl=True):
         logging.error(f"Error running Nmap: {e}")
     return None
 
-# Function to run Joomla scanner
 def run_joomscan(url, verbose=False, output_file=None, verify_ssl=True):
+    """
+    Runs the Joomla scanner on the given URL.
+
+    :param url: The URL to scan
+    :param verbose: Whether to enable verbose output
+    :param output_file: The file to save the scan results
+    :param verify_ssl: Whether to verify SSL certificates
+    :return: The scan results as a string
+    """
     print("Launching Joomla scanner...")
     scan_output_file = output_file or 'joomscan_output.txt'
     try:
@@ -97,8 +123,16 @@ def run_joomscan(url, verbose=False, output_file=None, verify_ssl=True):
         logging.error(f"Error running JoomScan: {e}")
     return None
 
-# Function to run WordPress scanner
 def run_wpscan(url, verbose=False, output_file=None, verify_ssl=True):
+    """
+    Runs the WordPress scanner on the given URL.
+
+    :param url: The URL to scan
+    :param verbose: Whether to enable verbose output
+    :param output_file: The file to save the scan results
+    :param verify_ssl: Whether to verify SSL certificates
+    :return: The scan results as a string
+    """
     print("Launching WordPress scanner...")
     scan_output_file = output_file or 'wpscan_output.txt'
     try:
@@ -117,8 +151,16 @@ def run_wpscan(url, verbose=False, output_file=None, verify_ssl=True):
         logging.error(f"Error running WPScan: {e}")
     return None
 
-# Function to run Droopescan
 def run_droopescan(url, cms_type, verbose=False, verify_ssl=True):
+    """
+    Runs Droopescan on the given URL for the specified CMS type.
+
+    :param url: The URL to scan
+    :param cms_type: The type of CMS (drupal, silverstripe)
+    :param verbose: Whether to enable verbose output
+    :param verify_ssl: Whether to verify SSL certificates
+    :return: The scan results as a string
+    """
     print("Launching Droopescan...")
     original_directory = os.getcwd()
     os.chdir('droopescan')
@@ -141,8 +183,16 @@ def run_droopescan(url, cms_type, verbose=False, verify_ssl=True):
     finally:
         os.chdir(original_directory)
 
-# Function to run Typo3 scanner
 def run_typo3scan(url, verbose=False, output_file=None, verify_ssl=True):
+    """
+    Runs the Typo3 scanner on the given URL.
+
+    :param url: The URL to scan
+    :param verbose: Whether to enable verbose output
+    :param output_file: The file to save the scan results
+    :param verify_ssl: Whether to verify SSL certificates
+    :return: The scan results as a string
+    """
     print("Launching Typo3 scanner...")
     original_directory = os.getcwd()
     os.chdir('Typo3Scan')
@@ -165,8 +215,16 @@ def run_typo3scan(url, verbose=False, output_file=None, verify_ssl=True):
     finally:
         os.chdir(original_directory)
 
-# Function to run AEM scanner
 def run_aemscan(url, verbose=False, output_file=None, verify_ssl=True):
+    """
+    Runs the AEM scanner on the given URL.
+
+    :param url: The URL to scan
+    :param verbose: Whether to enable verbose output
+    :param output_file: The file to save the scan results
+    :param verify_ssl: Whether to verify SSL certificates
+    :return: The scan results as a string
+    """
     print("Launching AEM scanner...")
     original_directory = os.getcwd()
     os.chdir('aemscan')
@@ -189,8 +247,16 @@ def run_aemscan(url, verbose=False, output_file=None, verify_ssl=True):
     finally:
         os.chdir(original_directory)
 
-# Function to run VB scanner
 def run_vbscan(url, verbose=False, output_file=None, verify_ssl=True):
+    """
+    Runs the VB scanner on the given URL.
+
+    :param url: The URL to scan
+    :param verbose: Whether to enable verbose output
+    :param output_file: The file to save the scan results
+    :param verify_ssl: Whether to verify SSL certificates
+    :return: The scan results as a string
+    """
     print("Launching VB scanner...")
     original_directory = os.getcwd()
     os.chdir('vbscan')
@@ -213,8 +279,16 @@ def run_vbscan(url, verbose=False, output_file=None, verify_ssl=True):
     finally:
         os.chdir(original_directory)
 
-# Function to run Moodle scanner
 def run_badmoodle(url, verbose=False, output_file=None, verify_ssl=True):
+    """
+    Runs the Moodle scanner on the given URL.
+
+    :param url: The URL to scan
+    :param verbose: Whether to enable verbose output
+    :param output_file: The file to save the scan results
+    :param verify_ssl: Whether to verify SSL certificates
+    :return: The scan results as a string
+    """
     print("Launching badmoodle scanner...")
     original_directory = os.getcwd()
     os.chdir('badmoodle')
@@ -237,8 +311,13 @@ def run_badmoodle(url, verbose=False, output_file=None, verify_ssl=True):
     finally:
         os.chdir(original_directory)
 
-# Function to search for CVEs for services
 def search_cves_for_services(scan_results):
+    """
+    Searches for CVEs related to services found in the scan results.
+
+    :param scan_results: The scan results
+    :return: A dictionary of analyzed results
+    """
     analyzed_results = analyze_scan_results(scan_results)
     all_cves = set()
     for service, details in analyzed_results.items():
@@ -246,8 +325,15 @@ def search_cves_for_services(scan_results):
             all_cves.update(details['cves'])
     return analyzed_results
 
-# Function to generate PDF report
 def generate_pdf(formatted_results, url, cms, cves):
+    """
+    Generates a PDF report of the scan results.
+
+    :param formatted_results: The formatted scan results
+    :param url: The URL of the scanned site
+    :param cms: The detected CMS
+    :param cves: A list of detected CVEs
+    """
     pdf_file_path = 'scan_output.pdf'
     doc = SimpleDocTemplate(pdf_file_path, pagesize=letter)
     styles = getSampleStyleSheet()
@@ -304,8 +390,15 @@ def generate_pdf(formatted_results, url, cms, cves):
     print(f"PDF report generated: {pdf_file_path}")
     logging.info(f"PDF report generated: {pdf_file_path}")
 
-# Function to generate HTML report
 def generate_html(formatted_results, url, cms, cves):
+    """
+    Generates an HTML report of the scan results.
+
+    :param formatted_results: The formatted scan results
+    :param url: The URL of the scanned site
+    :param cms: The detected CMS
+    :param cves: A list of detected CVEs
+    """
     env = Environment(loader=FileSystemLoader('.'))
     template = env.get_template('report_template.html')
     html_content = template.render(url=url, cms=cms, date=datetime.now().strftime('%Y-%m-%d %H:%M:%S'), results=formatted_results, cves=cves)
@@ -315,8 +408,17 @@ def generate_html(formatted_results, url, cms, cves):
     print(f"HTML report generated: {html_file_path}")
     logging.info(f"HTML report generated: {html_file_path}")
 
-# Function to run the appropriate scanner based on CMS type
 def run_scan(url, cms, verbose, scan_output_file, verify_ssl=True):
+    """
+    Runs the appropriate scanner based on the detected CMS.
+
+    :param url: The URL to scan
+    :param cms: The detected CMS
+    :param verbose: Whether to enable verbose output
+    :param scan_output_file: The file to save the scan results
+    :param verify_ssl: Whether to verify SSL certificates
+    :return: The scan results as a string
+    """
     if cms == 'joomla':
         return run_joomscan(url, verbose, scan_output_file, verify_ssl)
     elif cms == 'wordpress':
@@ -339,8 +441,10 @@ def run_scan(url, cms, verbose, scan_output_file, verify_ssl=True):
         logging.error(f"Unsupported CMS: {cms}")
         return None
 
-# Function to print the tool banner
 def print_banner():
+    """
+    Prints the tool banner.
+    """
     banner = """
   __ ___ ___ _____    _____  __  ____ ____  ____   ___ ____  
  / ]|  |  |/ ___/    / ___/ / ] /  | |  | |  |  | / _]|  | \ 
@@ -357,8 +461,10 @@ CMS Scanner: Detects and scans Joomla, WordPress, SilverStripe, Drupal, Typo3, A
     print(banner)
     logging.info("Printed banner.")
 
-# Main function
 def main():
+    """
+    The main function to run the CMS vulnerability scanner.
+    """
     args = parse_arguments()
     print_banner()
     url = args.url
@@ -403,7 +509,7 @@ def main():
 
     if all_cves:
         print("CVEs found:")
-        for cve in sorted(all_cves): # Sort for consistent output
+        for cve in sorted(all_cves):  # Sort for consistent output
             print(cve)
     else:
         print("No CVEs found.")
