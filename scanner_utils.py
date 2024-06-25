@@ -7,24 +7,24 @@ import os
 import time
 from tqdm import tqdm
 
-def make_request(url, method='GET', headers=None, timeout=10, allow_redirects=True):
+def make_request(url, method='GET', headers=None, timeout=10, verify_ssl=True):
     try:
         if method == 'GET':
-            response = requests.get(url, headers=headers, timeout=timeout, allow_redirects=allow_redirects)
+            response = requests.get(url, headers=headers, timeout=timeout, allow_redirects=True, verify=verify_ssl)
         elif method == 'HEAD':
-            response = requests.head(url, headers=headers, timeout=timeout, allow_redirects=allow_redirects)
+            response = requests.head(url, headers=headers, timeout=timeout, allow_redirects=True, verify=verify_ssl)
         response.raise_for_status()
         return response
     except requests.RequestException as e:
         logging.error(f"Request to {url} failed: {e}")
         return None
 
-def check_common_files(url, cms, config):
+def check_common_files(url, cms, config, verify_ssl=True):
     common_files = config[cms]['common_files']
     headers = {'User-Agent': 'Mozilla/5.0 (compatible; CMS-Scanner/1.0)'}
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        future_to_file = {executor.submit(make_request, url.rstrip('/') + '/' + file, method='HEAD', headers=headers): file for file in common_files}
+        future_to_file = {executor.submit(make_request, url.rstrip('/') + '/' + file, method='HEAD', headers=headers, verify_ssl=verify_ssl): file for file in common_files}
         for future in concurrent.futures.as_completed(future_to_file):
             try:
                 response = future.result()
@@ -38,10 +38,10 @@ def check_common_files(url, cms, config):
 def load_cpe_dictionary(file_path='official-cpe-dictionary_v2.3.xml'):
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"{file_path} not found")
-    
+
     with open(file_path, 'r', encoding='utf-8') as file:
         lines = file.readlines()
-    
+
     return lines
 
 def search_cpe(service, version, cpe_lines):
@@ -65,7 +65,7 @@ def extract_cves(cpe_name):
     except subprocess.CalledProcessError as e:
         if "Invalid numeric literal" in str(e):
             time.sleep(15)
-            return extract_cves(cpe_name)  # Retry after waiting
+            return extract_cves(cpe_name) # Retry after waiting
         else:
             logging.error(f"Error extracting CVEs for {cpe_name}: {e}")
             return []
@@ -76,35 +76,35 @@ def extract_services_and_versions(scan_results):
 
     regex_patterns = {
         'wpscan': [
-            r'\|\s+-\s([^\s]+)\s+([\d\.]+)',           # Matches "| - plugin 1.2.3"
-            r'\[\+\] ([^:]+): ([\d\.]+)',              # Matches "[+] plugin: 1.2.3"
-            r'Version: ([\d\.]+)'                      # Matches "Version: 1.2.3"
+            r'\|\s+-\s([^\s]+)\s+([\d\.]+)',      # Matches "| - plugin 1.2.3"
+            r'\[\+\] ([^:]+): ([\d\.]+)',       # Matches "[+] plugin: 1.2.3"
+            r'Version: ([\d\.]+)'           # Matches "Version: 1.2.3"
         ],
         'joomscan': [
-            r'Joomla! ([\d\.]+)',                      # Matches "Joomla! 1.2.3"
-            r'ver ([\d\.]+)',                          # Matches "ver 1.2.3"
+            r'Joomla! ([\d\.]+)',           # Matches "Joomla! 1.2.3"
+            r'ver ([\d\.]+)',             # Matches "ver 1.2.3"
         ],
         'droopescan': [
             r'Possible version\(s\):\s+([\d\.\-rc]+)', # Matches "Possible version(s): 1.2.3"
-            r'(\w+)\s+\(version:\s([\d\.]+)'           # Matches "service (version: 1.2.3)"
+            r'(\w+)\s+\(version:\s([\d\.]+)'      # Matches "service (version: 1.2.3)"
         ],
         'typo3scan': [
-            r'Identified Version:\s+([\d\.]+)',        # Matches "Identified Version: 10.4.37"
-            r'Extension Title:\s+([^\n]+)',            # Matches "Extension Title: VHS: Fluid ViewHelpers"
-            r'Extension Url:\s+([^\n]+)'               # Matches "Extension Url: https://www.example.com/typo3conf/ext/vhs"
+            r'Identified Version:\s+([\d\.]+)',    # Matches "Identified Version: 10.4.37"
+            r'Extension Title:\s+([^\n]+)',      # Matches "Extension Title: VHS: Fluid ViewHelpers"
+            r'Extension Url:\s+([^\n]+)'        # Matches "Extension Url: https://www.example.com/typo3conf/ext/vhs"
         ],
         'aemscan': [
-            r'AEM Version: ([\d\.]+)',                 # Matches "AEM Version: 6.5.0"
-            r'Component: ([^\n]+)',                    # Matches "Component: some-component"
-            r'Vulnerability: ([^\n]+)'                 # Matches "Vulnerability: some-vulnerability"
+            r'AEM Version: ([\d\.]+)',         # Matches "AEM Version: 6.5.0"
+            r'Component: ([^\n]+)',          # Matches "Component: some-component"
+            r'Vulnerability: ([^\n]+)'         # Matches "Vulnerability: some-vulnerability"
         ],
         'vbscan': [
-            r'vBulletin ([\d\.]+)',                    # Matches "vBulletin 3.7.6"
-            r'\[+\] ([^\n]+)',                         # Matches "[++] some output"
+            r'vBulletin ([\d\.]+)',          # Matches "vBulletin 3.7.6"
+            r'\[+\] ([^\n]+)',             # Matches "[++] some output"
         ],
         'nmap': [
-            r'(\d+)/\w+\s+open\s+([\w\-]+)\s+([\d\.]+)',  # Matches "80/tcp open  http 1.1"
-            r'(\d+)/\w+\s+open\s+([\w\-]+)\s+([\w\-]+)'  # Matches "80/tcp open  http  Apache httpd 2.4.7"
+            r'(\d+)/\w+\s+open\s+([\w\-]+)\s+([\d\.]+)', # Matches "80/tcp open http 1.1"
+            r'(\d+)/\w+\s+open\s+([\w\-]+)\s+([\w\-]+)' # Matches "80/tcp open http Apache httpd 2.4.7"
         ]
     }
 
@@ -183,7 +183,7 @@ def analyze_scan_results(scan_results):
         for service, details in services.items():
             version = details.get('version', 'unknown')
             cpes = search_cpe(service, version, cpe_lines)
-            all_cves = set()  # Use a set to avoid duplicates
+            all_cves = set() # Use a set to avoid duplicates
             for cpe in cpes:
                 cves = extract_cves(cpe)
                 all_cves.update(cves)
@@ -191,7 +191,6 @@ def analyze_scan_results(scan_results):
             detected_services[service] = {
                 'version': version,
                 'cpes': cpes,
-                'cves': list(all_cves)  # Convert set back to list
+                'cves': list(all_cves) # Convert set back to list
             }
     return detected_services
-
