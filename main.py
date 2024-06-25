@@ -54,8 +54,6 @@ def run_nmap_scan(url, verbose=False, output_file=None, verify_ssl=True):
     try:
         domain = url.replace('https://', '').replace('http://', '').strip('/')
         nmap_command = ['nmap', '-p-', '-A', domain]
-        if not verify_ssl:
-            nmap_command.append('--script ssl-cert')
         result = subprocess.Popen(nmap_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         with open(scan_output_file, 'w') as file:
             for line in result.stdout:
@@ -83,8 +81,6 @@ def run_joomscan(url, verbose=False, output_file=None, verify_ssl=True):
             original_directory = os.getcwd()
             os.chdir('joomscan')
             joomscan_command = ['perl', 'joomscan.pl', '--url', url]
-            if not verify_ssl:
-                joomscan_command.append('--no-verify-ssl')
             result = subprocess.Popen(joomscan_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
             os.chdir(original_directory)
 
@@ -107,8 +103,6 @@ def run_wpscan(url, verbose=False, output_file=None, verify_ssl=True):
     scan_output_file = output_file or 'wpscan_output.txt'
     try:
         wpscan_command = ['wpscan', '--url', url, '--detection-mode', 'passive']
-        if not verify_ssl:
-            wpscan_command.append('--disable-tls-checks')
         result = subprocess.Popen(wpscan_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         with open(scan_output_file, 'w') as file:
             for line in result.stdout:
@@ -155,8 +149,6 @@ def run_typo3scan(url, verbose=False, output_file=None, verify_ssl=True):
     scan_output_file = output_file or 'typo3scan_output.txt'
     try:
         typo3scan_command = ['python3', 'typo3scan.py', '-d', url, '--vuln']
-        if not verify_ssl:
-            typo3scan_command.append('--no-verify-ssl')
         result = subprocess.Popen(typo3scan_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         with open(scan_output_file, 'w') as file:
             for line in result.stdout:
@@ -181,8 +173,6 @@ def run_aemscan(url, verbose=False, output_file=None, verify_ssl=True):
     scan_output_file = output_file or 'aemscan_output.txt'
     try:
         aemscan_command = ['aemscan', url]
-        if not verify_ssl:
-            aemscan_command.append('--no-verify-ssl')
         result = subprocess.Popen(aemscan_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         with open(scan_output_file, 'w') as file:
             for line in result.stdout:
@@ -207,8 +197,6 @@ def run_vbscan(url, verbose=False, output_file=None, verify_ssl=True):
     scan_output_file = output_file or 'vbscan_output.txt'
     try:
         vbscan_command = ['./vbscan.pl', url]
-        if not verify_ssl:
-            vbscan_command.append('--no-verify-ssl')
         result = subprocess.Popen(vbscan_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         with open(scan_output_file, 'w') as file:
             for line in result.stdout:
@@ -233,8 +221,6 @@ def run_badmoodle(url, verbose=False, output_file=None, verify_ssl=True):
     scan_output_file = output_file or 'badmoodle_output.txt'
     try:
         badmoodle_command = ['./badmoodle.py', '-u', url, '-l', '2']
-        if not verify_ssl:
-            badmoodle_command.append('--no-verify-ssl')
         result = subprocess.Popen(badmoodle_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         with open(scan_output_file, 'w') as file:
             for line in result.stdout:
