@@ -446,16 +446,17 @@ def print_banner():
     Prints the tool banner.
     """
     banner = """
-  __ ___ ___ _____    _____  __  ____ ____  ____   ___ ____  
- / ]|  |  |/ ___/    / ___/ / ] /  | |  | |  |  | / _]|  | \ 
-/ / |  |  (   \_    (   \_ / / |    |  | |  |  | / [_ |    |
-/ / |  |  |\__  |    \__  |/ /  |  D  |  |  |  |  |  |   |  |
-\  \|  :  |/  \ |    /  \  \  \  |    |  |  |  |  |  |   |  |
- \____|_|\_|\___|    \___|  \____|\____|__|__|____|__|____|
+    __  ___ ___  _____        _____   __   ____  ____   ____     ___  ____  
+   /  ]|   |   |/ ___/       / ___/  /  ] /    ||    \ |    \   /  _]|    \ 
+  /  / | _   _ (   \_  _____(   \_  /  / |  o  ||  _  ||  _  | /  [_ |  D  )
+ /  /  |  \_/  |\__  ||     |\__  |/  /  |     ||  |  ||  |  ||    _]|    / 
+/   \_ |   |   |/  \ ||_____|/  \ /   \_ |  _  ||  |  ||  |  ||   [_ |    \ 
+\     ||   |   |\    |       \    \     ||  |  ||  |  ||  |  ||     ||  .  \\
+ \____||___|___| \___|        \___|\____||__|__||__|__||__|__||_____||__|\_|
+ 
+  CMS Scanner: Detects and scans Joomla, WordPress, SilverStripe, Drupal, Typo3, AEM, VBulletin, Moodle, Oscommerce, Coldfusion, Jboss, Oracle E-Business, Phpbb, Php-nuke, Dotnetnuke, Umbraco, Prestashop, Opencart, Magento.
 
-CMS Scanner: Detects and scans Joomla, WordPress, SilverStripe, Drupal, Typo3, AEM, VBulletin, Moodle, Oscommerce, Coldfusion, Jboss, Oracle E-Business, Phpbb, Php-nuke, Dotnetnuke, Umbraco, Prestashop, Opencart, Magento.
-
-                  BY JMO
+                                    BY JMO
 
 """
     print(banner)
